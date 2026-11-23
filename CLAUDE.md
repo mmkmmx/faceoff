@@ -31,10 +31,11 @@ A Pair Rank survey that decides which activities the Young Men program runs in 2
 
 ## Current state
 
-- `src/claude-artifact/index.html` is the working survey as published on claude.ai. It stores data with the claude.ai artifact `db` capability, which **requires every viewer to be signed in to Claude**. That is why it cannot be used by the boys. Treat it as the reference for UI, pairing, scoring and result views, not as the deliverable.
-- The Google Sheet tab `2027 Survey Results` exists with headers only, in the old layout (A to EA). The script rewrites the header to the new layout (A to AG, see `docs/SPEC.md`) on its first submission.
+- `web/index.html` is the public survey (no login). `src/claude-artifact/index.html` is the old claude.ai version. It stores data with the claude.ai artifact `db` capability, which **requires every viewer to be signed in to Claude**. That is why it cannot be used by the boys. It is now only the reference for the owner result views (`resultsHtml`, `compareHtml`, `peopleHtml`).
+- The Google Sheet tab `2027 Survey Results` uses the A to AG layout (`docs/SPEC.md`): win rates as numbers, Status in AF, raw votes in AG. The comment screen was removed; column E stays blank.
 - `apps-script/Code.gs` is the intake endpoint. Tested offline, on a sheet copy, and on phone and desktop. The live page `https://mmkmmx.github.io/faceoff/` (repo `mmkmmx/faceoff`, `web/` published by GitHub Actions) points at the real YM Sheet deployment (live since 2026-11-23). To change the script: paste the new code, then Deploy > Manage deployments > edit > New version, which keeps the same URL.
-- The test response in the old artifact was purged. The sheet has no data rows.
+- As of 2026-11-23 the only data row is the "Test Delete-me" row (Katie to delete). The link had not been sent out yet.
+- Run `node tools/test-apps-script.js` after any script change.
 
 ## Links
 

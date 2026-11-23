@@ -1,6 +1,6 @@
 # Next steps
 
-Work in this order. Status as of 2026-11-22: page built, Apps Script tested offline (`node tools/test-apps-script.js`), nothing deployed yet.
+Work in this order. Status as of 2026-11-23: live at https://mmkmmx.github.io/faceoff/, connected to the real YM Sheet, tested on phone and desktop. Link not sent yet.
 
 ## 1. Repo
 
@@ -25,7 +25,7 @@ Work in this order. Status as of 2026-11-22: page built, Apps Script tested offl
 - [x] Review and test the draft offline (fake sheet). Fixed: Status column was read before it existed.
 - [x] Test it once in a throwaway copy of the sheet.
 - [x] Deploy > New deployment > Web app. Execute as: Me. Who has access: Anyone. Copy the `/exec` URL into the page.
-- [x] Confirm a test post creates one row with correct win-rate formulas, and that a second post with the same name replaces it, and that an unfinished post never replaces a finished one.
+- [x] Confirm a test post creates one row with correct win rates (now plain numbers, not formulas), and that a second post with the same name replaces it, and that an unfinished post never replaces a finished one.
 - [x] Header row rewritten by the script (Status in AF, Votes in AG).
 
 ## 4. Publish
@@ -33,12 +33,13 @@ Work in this order. Status as of 2026-11-22: page built, Apps Script tested offl
 - [x] Turn on GitHub Pages for the repo (serve `web/`, or move the page to the root or `docs/`).
 - [x] Test the live link on a phone and on desktop, each in a private window, signed out of everything.
 - [ ] Delete the "Test Delete-me" row from the real sheet.
-- [ ] Send the link to leaders and parents. Remind them there is no login.
+- [ ] Delete the old test copy of the sheet (its script still accepts posts).
+- [ ] Send the link to leaders and parents. Remind them there is no login. A draft message is in the 2026-11-23 session; short version: link, ~7 minutes, no login, "Start a new survey" at the end for brothers.
 
 ## 5. Owner results
 
 - [ ] Decide with Katie: sheet formulas on a results tab, a private dashboard, or both (`docs/SPEC.md`).
-- [ ] If a results tab is built in the sheet: per-group win rates (Everyone, Deacons, Teachers & Priests, Leaders) and a Compare table with rank and gap.
+- [ ] If a results tab is built in the sheet: per-group win rates (Everyone, Deacons, Teachers & Priests, Leaders) and a Compare table with rank and gap. Pool wins and appearances from the Votes column (AG), not by averaging F to AE (see `docs/SPEC.md`). Pooling from the compact AG text is awkward in formulas; an Apps Script menu function that rebuilds a results tab is probably simpler.
 - [ ] Merge any typo duplicates by hand and say so in the sheet.
 
 ## 6. Nice to have
