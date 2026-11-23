@@ -60,7 +60,6 @@ h2{font-size:clamp(28px,6vw,38px)}
 .pick.chosen{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .vs{align-self:center;font-family:var(--display);font-weight:700;color:var(--muted);font-size:20px}
 .hint{font-size:14px;color:var(--muted);text-align:center}
-textarea{width:100%;min-height:110px;border:1px solid var(--line);border-radius:10px;padding:12px;font:inherit;background:var(--bg);color:var(--ink);resize:vertical}
 .bars{display:flex;flex-direction:column;gap:10px}
 .bar{display:grid;grid-template-columns:28px minmax(0,1fr) 62px;gap:10px;align-items:center}
 .bar .rk{font-family:var(--display);font-weight:700;font-size:20px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
@@ -113,8 +112,8 @@ const ROLES = ["Deacon","Teacher","Priest","Leader"];
 const LS_KEY = "ym-pairrank-2027-progress";
 
 /* ---------- State ---------- */
-let step = "intro";          // intro | about | pairs | extra | sending | done
-let first = "", last = "", role = null, comment = "";
+let step = "intro";          // intro | about | pairs | send | done
+let first = "", last = "", role = null;
 let pairs = [], idx = 0, votes = [];
 let lastAutosaveCount = 0;
 let sendError = "";
@@ -128,7 +127,7 @@ const configured = () => /^https:\/\/script\.google\.com\/.+\/exec$/.test(WEB_AP
 function lsGet(){ try { return JSON.parse(localStorage.getItem(LS_KEY)||"null"); } catch(e){ return null; } }
 function lsSet(v){ try { localStorage.setItem(LS_KEY, JSON.stringify(v)); } catch(e){} }
 function lsClear(){ try { localStorage.removeItem(LS_KEY); } catch(e){} }
-function saveLocal(){ lsSet({first, last, role, comment, pairs, idx, votes, step: step==="sending" ? "extra" : step, lastAutosaveCount}); }
+function saveLocal(){ lsSet({first, last, role, pairs, idx, votes, step, lastAutosaveCount}); }
 
 // Balanced random pairs: repeatedly take the unused pair whose options have appeared least.
 function buildPairs(n){
@@ -150,7 +149,7 @@ function buildPairs(n){
   return out; // selection order kept so an early finish still covers every activity evenly
 }
 
-// Win rate = wins / appearances. Used only for the respondent's own top three.
+// Win rate = wins / appearances. Used only for the respondent's own top ten.
 function tally(list){
   const wins = Array(ACTIVITIES.length).fill(0), seen = Array(ACTIVITIES.length).fill(0);
   list.forEach(([a,b,w]) => { seen[a]++; seen[b]++; wins[w]++; });
@@ -162,7 +161,7 @@ function tally(list){
 /* ---------- Sending ---------- */
 function payload(complete){
   return {first: first.trim().slice(0,30), last: last.trim().slice(0,30), role,
-          votes: votes.slice(0, PAIRS_PER_PERSON), comment: comment.trim().slice(0,500),
+          votes: votes.slice(0, PAIRS_PER_PERSON), comment: "",
           complete, at: Date.now()};
 }
 // Apps Script sends no CORS headers, so the reply cannot be read. A resolved fetch means "sent".
@@ -176,19 +175,21 @@ function autosave(){
   lastAutosaveCount = votes.length;
   post(payload(false), true).catch(()=>{}); // best effort; the final submit carries everything
 }
+let sending = false;
 async function submit(){
-  step = "sending"; sendError = ""; saveLocal(); render();
+  if (sending) return;
+  step = "send"; sending = true; sendError = ""; saveLocal(); render();
   try {
     await post(payload(true), false);
     const mine = votes.slice();
     lsClear();
-    step = "done"; render(mine);
+    sending = false; step = "done"; render(mine);
   } catch(e){
-    step = "extra";
+    sending = false;
     sendError = !configured()
       ? "This survey is not connected yet. Please tell the survey organizer. Your answers are saved on this device."
-      : "Your answers could not be sent. Check that you are online, then tap Submit again. Your answers are saved on this device.";
-    saveLocal(); render();
+      : "Your answers could not be sent. Check that you are online, then tap Try again. Your answers are saved on this device.";
+    render();
   }
 }
 
@@ -198,7 +199,7 @@ function render(doneVotes){
   if (step === "intro") app.innerHTML = introHtml();
   else if (step === "about") app.innerHTML = aboutHtml();
   else if (step === "pairs") app.innerHTML = pairsHtml();
-  else if (step === "extra" || step === "sending") app.innerHTML = extraHtml();
+  else if (step === "send") app.innerHTML = sendHtml();
   else app.innerHTML = doneHtml(doneVotes || []);
   bind();
   const h = app.querySelector("h1,h2"); if (h && step !== "pairs") { h.tabIndex = -1; }
@@ -230,7 +231,7 @@ function introHtml(){
 function aboutHtml(){
   const ready = role && first.trim() && last.trim();
   return `<div class="stack">
-    <div class="meta"><span>Section 1 of 3</span><span>About you</span></div>
+    <div class="meta"><span>Section 1 of 2</span><span>About you</span></div>
     <div class="progress"><i style="width:8%"></i></div>
     <h2>Who is answering?</h2>
     <div class="names">
@@ -250,7 +251,7 @@ function pairsHtml(){
   const [a,b] = pairs[idx];
   const pct = 10 + Math.round(80 * idx / pairs.length);
   return `<div class="stack">
-    <div class="meta"><span>Section 2 of 3 · Pair Rank</span><span>Pair ${idx+1} of ${pairs.length}</span></div>
+    <div class="meta"><span>Section 2 of 2 · Pair Rank</span><span>Pair ${idx+1} of ${pairs.length}</span></div>
     <div class="progress"><i style="width:${pct}%"></i></div>
     <h2>Which would you rather do?</h2>
     <div class="versus" role="group" aria-label="Choose one activity">
@@ -269,31 +270,30 @@ function pairsHtml(){
   </div>`;
 }
 
-function extraHtml(){
-  const sending = step === "sending";
+function sendHtml(){
   return `<div class="stack">
-    <div class="meta"><span>Section 3 of 3</span><span>Anything else</span></div>
-    <div class="progress"><i style="width:95%"></i></div>
-    <h2>Anything we missed?</h2>
-    <label for="comment" class="lede">Suggest an activity or tell us what would make Wednesday nights better. Optional.</label>
-    <textarea id="comment" maxlength="500" ${sending?"disabled":""}>${esc(comment)}</textarea>
+    <div class="progress"><i style="width:98%"></i></div>
+    <h2>${sending ? "Sending your answers…" : sendError ? "Not sent yet" : "Ready to send"}</h2>
     ${sendError ? `<div class="warn" role="alert">${esc(sendError)}</div>` : ""}
-    <div class="row"><button class="btn" id="submit" type="button" ${sending?"disabled":""}>${sending?"Sending…":"Submit my answers"}</button>
-    <button class="btn ghost" id="back-extra" type="button" ${sending?"disabled":""}>Back</button></div>
+    ${sending ? "" : `<div class="row"><button class="btn" id="submit" type="button">${sendError ? "Try again" : "Send my answers"}</button>
+      <button class="btn ghost" id="back-send" type="button">Back to the pairs</button></div>`}
   </div>`;
 }
 
 function doneHtml(mine){
-  const top = tally(mine).filter(r=>r.seen).slice(0,3);
+  const top = tally(mine).filter(r=>r.seen && r.wins).slice(0,10);
   return `<div class="stack">
-    <h1>Thank you.</h1>
-    <p class="lede">Your ${mine.length} picks are in. ${top.length ? "Your top picks:" : ""}</p>
+    <h1>Thank you${first.trim() ? ", "+esc(first.trim()) : ""}.</h1>
+    <p class="lede">Your ${mine.length} picks are in.${top.length ? " Here are your top ten:" : ""}</p>
     ${top.length ? `<div class="card"><div class="bars">${top.map((r,k)=>{
       const pc = Math.round(r.rate*100);
       return `<div class="bar"><div class="rk">${k+1}</div><div class="nm">${esc(r.name)}<div class="track"><i style="width:${pc}%"></i></div></div><div class="pc">${pc}%</div></div>`;
     }).join("")}</div></div>` : ""}
-    <p class="lede">You can close this page. If someone else wants to take the survey on this device, tap below.</p>
-    <div class="row"><button class="btn ghost" id="again" type="button">Start a new survey</button></div>
+    <div class="card stack">
+      <h3>Does someone else need to take the survey?</h3>
+      <p style="margin:0">A brother, or anyone else using this phone or computer, can start a fresh survey here. Otherwise you are all done and can close this page.</p>
+      <div class="row"><button class="btn" id="again" type="button">Start a new survey</button></div>
+    </div>
   </div>`;
 }
 
@@ -305,13 +305,13 @@ function bind(){
   on("#start",()=>{ step="about"; render(); });
   on("#resume",()=>{
     const s = lsGet(); if (!s) { render(); return; }
-    ({first, last, role, comment, pairs, idx, votes} = s);
+    ({first, last, role, pairs, idx, votes} = s);
     lastAutosaveCount = s.lastAutosaveCount || 0;
-    step = (s.step==="extra" || idx>=pairs.length) ? "extra" : "pairs";
+    step = (s.step==="send" || s.step==="extra" || idx>=pairs.length) ? "send" : "pairs";
     if (step==="pairs") idx = Math.min(idx, pairs.length-1);
     render();
   });
-  on("#discard",()=>{ lsClear(); first=last=comment=""; role=null; pairs=[]; votes=[]; idx=0; render(); });
+  on("#discard",()=>{ lsClear(); first=last=""; role=null; pairs=[]; votes=[]; idx=0; render(); });
   document.querySelectorAll("[data-g]").forEach(b=>b.addEventListener("click",()=>{ role=b.dataset.g; render(); }));
   const refresh=()=>{ const t=$("#to-pairs"); if(t) t.disabled=!(role&&first.trim()&&last.trim()); };
   const fi=$("#first"); if(fi) fi.addEventListener("input",()=>{ first=fi.value; refresh(); });
@@ -320,11 +320,10 @@ function bind(){
   document.querySelectorAll(".pick").forEach(b=>b.addEventListener("click",()=>choose(Number(b.dataset.w))));
   on("#skip",()=>advance());
   on("#back",()=>{ if(idx>0){ idx--; unvoteAt(idx); saveLocal(); render(); } });
-  on("#back-extra",()=>{ sendError=""; if(idx>=pairs.length){ idx=pairs.length-1; unvoteAt(idx); } step="pairs"; saveLocal(); render(); });
-  on("#finish",()=>{ step="extra"; saveLocal(); render(); });
+  on("#back-send",()=>{ sendError=""; if(idx>=pairs.length){ idx=pairs.length-1; unvoteAt(idx); } step="pairs"; saveLocal(); render(); });
+  on("#finish",submit);
   on("#submit",submit);
-  on("#again",()=>{ lsClear(); first=last=comment=""; role=null; pairs=[]; votes=[]; idx=0; step="intro"; render(); });
-  const ta=$("#comment"); if(ta) ta.addEventListener("input",()=>{ comment=ta.value; saveLocal(); });
+  on("#again",()=>{ lsClear(); first=last=""; role=null; pairs=[]; votes=[]; idx=0; lastAutosaveCount=0; step="about"; render(); });
 }
 
 let choosing = false;
@@ -338,7 +337,7 @@ function choose(w){
 }
 function advance(){
   idx++;
-  if (idx>=pairs.length) step="extra";
+  if (idx>=pairs.length) { submit(); return; }
   saveLocal();
   autosave();
   render();

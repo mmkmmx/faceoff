@@ -5,8 +5,9 @@
 1. **Intro.** Explains the survey. About seven minutes.
 2. **About you.** First name, last name (both required), role chips: Deacon, Teacher, Priest, Leader.
 3. **Pair Rank.** 100 pairs, one at a time: "Which would you rather do?" Two large tap targets (stacked on phones, side by side on desktop, arrow keys on desktop). Buttons: Back, Skip this pair, and from pair 30 on, Finish now. Progress bar and "Pair n of 100".
-4. **Anything we missed?** Optional comment, up to 500 characters.
-5. **Done.** Thank-you plus the respondent's own top three. No group results.
+4. **Done.** After the last pair (or "Finish now") the answers are sent right away. The page then shows the respondent's own top ten (no group results) and asks whether someone else on the device needs to take the survey; "Start a new survey" goes straight to the name screen. If sending fails, a "Try again" screen keeps the answers on the device.
+
+The comment screen was removed on 2026-11-23. The page sends `comment: ""`; the column stays in the sheet.
 
 ## Pair generation
 
