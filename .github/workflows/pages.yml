@@ -1,4 +1,4 @@
-# Publishes only the web/ folder to GitHub Pages on every push to main.
+# Publishes only the web/ folder to GitHub Pages on every push to main that changes web/.
 name: Publish survey page
 on:
   push:
