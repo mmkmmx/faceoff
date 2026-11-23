@@ -38,11 +38,17 @@ Work in this order. Status as of 2026-11-23: live at https://mmkmmx.github.io/fa
 
 ## 5. Owner results
 
-- [ ] Decide with Katie: sheet formulas on a results tab, a private dashboard, or both (`docs/SPEC.md`).
-- [ ] If a results tab is built in the sheet: per-group win rates (Everyone, Deacons, Teachers & Priests, Leaders) and a Compare table with rank and gap. Pool wins and appearances from the Votes column (AG), not by averaging F to AE (see `docs/SPEC.md`). Pooling from the compact AG text is awkward in formulas; an Apps Script menu function that rebuilds a results tab is probably simpler.
+- [x] Decided 2026-11-23: both, group totals only (no per-person view).
+- [x] `rebuildSummary()` in `apps-script/Code.gs` writes the `2027 Results Summary` tab after every submission, plus a YM Results menu. Tested offline.
+- [x] (Done 2026-11-23) Katie: paste the new `Code.gs` into the YM Sheet's Apps Script, Deploy > Manage deployments > edit > New version, then reload the sheet and run YM Results > Rebuild summary once (approve the permission prompt).
+- [x] Private dashboard: https://claude.ai/artifact/2Pof1ZJoMgQcEErUunaEBn (live from the sheet, no names).
 - [ ] Merge any typo duplicates by hand and say so in the sheet.
+- [ ] Open the private dashboard once and confirm it draws (it was written but no one had opened it to check at the end of 2026-11-23). Approve Google Sheets when asked.
+- [ ] Decide whether other leaders can open the YM Sheet. If so, they can see names on `2027 Survey Results` and the group totals on `2027 Results Summary`.
 
 ## 6. Nice to have
+
+- [ ] Sortable Compare table on the private dashboard (sort by any group or by Gap, as the old artifact did).
 
 - [ ] Shared code and rate limiting on the endpoint.
 - [ ] A "Youth only" combined view (Deacons, Teachers and Priests together), offered earlier and not requested yet.

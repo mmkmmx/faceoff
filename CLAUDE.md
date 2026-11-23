@@ -34,12 +34,15 @@ A Pair Rank survey that decides which activities the Young Men program runs in 2
 - `web/index.html` is the public survey (no login). `src/claude-artifact/index.html` is the old claude.ai version. It stores data with the claude.ai artifact `db` capability, which **requires every viewer to be signed in to Claude**. That is why it cannot be used by the boys. It is now only the reference for the owner result views (`resultsHtml`, `compareHtml`, `peopleHtml`).
 - The Google Sheet tab `2027 Survey Results` uses the A to AG layout (`docs/SPEC.md`): win rates as numbers, Status in AF, raw votes in AG. The comment screen was removed; column E stays blank.
 - `apps-script/Code.gs` is the intake endpoint. Tested offline, on a sheet copy, and on phone and desktop. The live page `https://mmkmmx.github.io/faceoff/` (repo `mmkmmx/faceoff`, `web/` published by GitHub Actions) points at the real YM Sheet deployment (live since 2026-11-23). To change the script: paste the new code, then Deploy > Manage deployments > edit > New version, which keeps the same URL.
-- As of 2026-11-23 the only data row is the "Test Delete-me" row (Katie to delete). The link had not been sent out yet.
+- As of 2026-11-23 (end of day) the sheet has 3 rows, all role Leader (2 Finished, 1 Unfinished at 55 pairs). Not checked whether any is the old "Test Delete-me" row.
+- The role buttons on the survey show the 2027 age for each role (Deacon 12-13, Teacher 14-15, Priest 16-18).
+- Owner results: the script also rebuilds the `2027 Results Summary` tab (group totals, no names) after every submission; menu YM Results > Rebuild summary. Private dashboard link below.
 - Run `node tools/test-apps-script.js` after any script change.
 
 ## Links
 
 - Google Sheet: https://docs.google.com/spreadsheets/d/1nwRJiMnCpUWfbE80NsyHeK1M07nGFSuBIrlo_lcV_CQ/edit (tab `2027 Survey Results`, sheetId 1819138395)
+- Private results dashboard (owner-only, live from the sheet, no names): https://claude.ai/artifact/2Pof1ZJoMgQcEErUunaEBn
 - Old Claude artifact (owner-only): https://claude.ai/artifact/NopuDkGD8RtQq9cHTtrfFk
 
 ## How to work in this repo

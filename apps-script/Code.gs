@@ -103,10 +103,123 @@ function doPost(e) {
     sheet.getRange(row, COL_SUBMITTED).setNumberFormat('yyyy-mm-dd hh:mm');
     sheet.getRange(row, COL_FIRST_ACT, 1, ACTIVITIES.length).setNumberFormat('0%');
 
+    // Keep the summary tab current. A failure here must never lose the answers just saved.
+    try { rebuildSummary(); } catch (err) { console.error('summary failed: ' + err); }
+
     return json_({ ok: true, row: row, status: complete ? 'Finished' : 'Unfinished' });
   } finally {
     lock.releaseLock();
   }
+}
+
+/* ---------- Results summary (group totals only, no names) ---------- */
+
+const SUMMARY_TAB = '2027 Results Summary';
+const GROUPS = [
+  ['Everyone', ROLES],
+  ['Deacons', ['Deacon']],
+  ['Teachers & Priests', ['Teacher', 'Priest']],
+  ['Leaders', ['Leader']]
+];
+const GAP_FLAG = 0.30; // gap of 30+ points between groups is highlighted
+
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu('YM Results')
+    .addItem('Rebuild summary', 'rebuildSummary')
+    .addToUi();
+}
+
+// rows: [{role, status, votes: 'w>l,w>l'}]. Pools wins and appearances per group.
+function summarize_(rows) {
+  const n = ACTIVITIES.length;
+  return GROUPS.map(function (g) {
+    const mine = rows.filter(function (r) { return g[1].indexOf(r.role) >= 0; });
+    const wins = new Array(n).fill(0);
+    const seen = new Array(n).fill(0);
+    let votes = 0;
+    mine.forEach(function (r) {
+      String(r.votes || '').split(',').forEach(function (s) {
+        const m = /^(\d+)>(\d+)$/.exec(s.trim());
+        if (!m) return;
+        const w = +m[1], l = +m[2];
+        if (w >= n || l >= n || w === l) return;
+        wins[w]++; seen[w]++; seen[l]++; votes++;
+      });
+    });
+    const rate = seen.map(function (s, i) { return s ? wins[i] / s : null; });
+    const rank = rate.map(function (x) {
+      return x === null ? null : 1 + rate.filter(function (y) { return y !== null && y > x; }).length;
+    });
+    return {
+      name: g[0], people: mine.length, votes: votes,
+      finished: mine.filter(function (r) { return r.status === 'Finished'; }).length,
+      wins: wins, seen: seen, rate: rate, rank: rank
+    };
+  });
+}
+
+function rebuildSummary() {
+  const ss = SpreadsheetApp.getActive();
+  const src = ss.getSheetByName(TAB);
+  if (!src) throw new Error('missing tab ' + TAB);
+  const last = src.getLastRow();
+  const data = last > 1 ? src.getRange(2, 1, last - 1, LAST_COL).getValues() : [];
+  const rows = data.filter(function (r) { return String(r[COL_NAME - 1]).trim(); }).map(function (r) {
+    return { role: r[COL_ROLE - 1], status: r[COL_STATUS - 1], votes: r[COL_VOTES - 1] };
+  });
+  const s = summarize_(rows);
+
+  // Compare table, sorted by the Everyone rank.
+  const order = ACTIVITIES.map(function (_, i) { return i; }).sort(function (a, b) {
+    const ra = s[0].rank[a] === null ? 1e9 : s[0].rank[a], rb = s[0].rank[b] === null ? 1e9 : s[0].rank[b];
+    return ra - rb || ACTIVITIES[a].localeCompare(ACTIVITIES[b]);
+  });
+  const table = order.map(function (i) {
+    const row = [ACTIVITIES[i]];
+    s.forEach(function (g) { row.push(g.rank[i] === null ? '' : g.rank[i], g.rate[i] === null ? '' : g.rate[i]); });
+    const groupRates = s.slice(1).map(function (g) { return g.rate[i]; }).filter(function (x) { return x !== null; });
+    row.push(groupRates.length > 1 ? Math.max.apply(null, groupRates) - Math.min.apply(null, groupRates) : '');
+    return row;
+  });
+
+  let out = ss.getSheetByName(SUMMARY_TAB);
+  if (!out) out = ss.insertSheet(SUMMARY_TAB);
+  out.clear();
+  const width = 2 + s.length * 2;
+  if (out.getMaxColumns() < width) out.insertColumnsAfter(out.getMaxColumns(), width - out.getMaxColumns());
+
+  out.getRange(1, 1, 1, 2).setValues([['2027 Pair Rank results', 'Updated ' +
+    Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone(), 'yyyy-MM-dd HH:mm')]]);
+  out.getRange(1, 1).setFontWeight('bold').setFontSize(14);
+
+  // Who answered, per group.
+  out.getRange(3, 1, 1, 5).setValues([['Group', 'People', 'Finished', 'Unfinished', 'Pairs answered']]).setFontWeight('bold');
+  out.getRange(4, 1, s.length, 5).setValues(s.map(function (g) {
+    return [g.name, g.people, g.finished, g.people - g.finished, g.votes];
+  }));
+
+  // Compare table.
+  const top = 4 + s.length + 1;
+  const head1 = ['Activity'];
+  s.forEach(function (g) { head1.push(g.name + ' rank', g.name + ' win rate'); });
+  head1.push('Gap');
+  out.getRange(top, 1, 1, width).setValues([head1]).setFontWeight('bold').setWrap(true);
+  if (table.length) {
+    out.getRange(top + 1, 1, table.length, width).setValues(table);
+    s.forEach(function (_, k) { out.getRange(top + 1, 3 + k * 2, table.length, 1).setNumberFormat('0%'); });
+    out.getRange(top + 1, width, table.length, 1).setNumberFormat('0%');
+    // Highlight big disagreements between groups.
+    table.forEach(function (r, k) {
+      if (r[width - 1] !== '' && r[width - 1] >= GAP_FLAG - 1e-9) {
+        out.getRange(top + 1 + k, width).setBackground('#f9d3bf').setFontWeight('bold');
+      }
+    });
+  }
+  out.getRange(top + table.length + 2, 1).setValue(
+    'Win rate = times picked / times shown, pooled across everyone in the group. ' +
+    'Gap = highest minus lowest win rate among Deacons, Teachers & Priests, and Leaders (shaded at 30%+). ' +
+    'This tab is rebuilt after every submission; edits here are overwritten.');
+  return s;
 }
 
 function validate_(p) {

@@ -23,12 +23,16 @@ function makeSheet(maxCols) {
       setFormulas: fs => { fs.forEach((row, i) => row.forEach((f, j) => { cell(i, j).f = f; })); return api; },
       setNumberFormat: () => api,
       setFontWeight: () => api,
+      setFontSize: () => api,
+      setWrap: () => api,
+      setBackground: () => api,
       clearContent: () => { for (let i = 0; i < nr; i++) for (let j = 0; j < nc; j++) { cell(i, j).v = ""; cell(i, j).f = ""; } return api; },
     };
     return api;
   };
   return {
     cells,
+    clear: () => { for (const k in cells) delete cells[k]; },
     getLastRow: lastRow,
     getMaxColumns: () => maxColumns,
     insertColumnsAfter: (_, n) => { maxColumns += n; },
@@ -36,10 +40,18 @@ function makeSheet(maxCols) {
   };
 }
 
+const tabs = {};
 function load(sheet) {
+  tabs["2027 Survey Results"] = sheet;
   const ctx = {
+    console,
+    Utilities: { formatDate: () => "2026-11-23 12:00" },
     LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
-    SpreadsheetApp: { getActive: () => ({ getSheetByName: n => (n === "2027 Survey Results" ? sheet : null) }) },
+    SpreadsheetApp: { getActive: () => ({
+      getSheetByName: n => tabs[n] || null,
+      insertSheet: n => (tabs[n] = makeSheet(26)),
+      getSpreadsheetTimeZone: () => "America/Denver",
+    }) },
     ContentService: { MimeType: { JSON: "json" }, createTextOutput: s => ({ setMimeType: () => JSON.parse(s) }) },
   };
   vm.createContext(ctx);
@@ -113,6 +125,39 @@ check("missing body rejected", gs.doPost({}).ok === false);
 r = post({ ...base, first: "Long", comment: "x".repeat(600) });
 check("long comment cut to 500", sheet.cells[`${r.row},5`].v.length === 500);
 check("no extra rows from rejected posts", sheet.getLastRow() === 4);
+
+// Summary tab: pooled group totals, no names.
+const sum = tabs["2027 Results Summary"];
+check("summary tab created by a post", !!sum);
+// Rows now: Sam Smith (Deacon, finished: 4>3, 3>5), Sam Jones (Deacon, unfinished, 10 pairs), Long (Deacon, unfinished, 10 pairs)
+post({ first: "Tia", last: "Teach", role: "Teacher", comment: "", votes: [[0, 1, 1], [1, 2, 1]], complete: true });
+post({ first: "Lee", last: "Lead", role: "Leader", comment: "", votes: [[0, 1, 0]], complete: true });
+const s = gs.rebuildSummary();
+const g = Object.fromEntries(s.map(x => [x.name, x]));
+check("group people counts", g.Everyone.people === 5 && g.Deacons.people === 3 && g["Teachers & Priests"].people === 1 && g.Leaders.people === 1);
+check("finished counts", g.Everyone.finished === 3 && g.Deacons.finished === 1);
+check("pooled, not averaged: Everyone activity 0 = 21 wins / 22 shown", g.Everyone.wins[0] === 21 && g.Everyone.seen[0] === 22);
+check("Teachers & Priests: activity 1 won 2 of 2", g["Teachers & Priests"].rate[1] === 1 && g["Teachers & Priests"].rank[1] === 1);
+check("never-shown activity has no rate or rank", g.Leaders.rate[5] === null && g.Leaders.rank[5] === null);
+check("ties share a rank (T&P: activities 0 and 2 both 0 of 1)", g["Teachers & Priests"].rank[0] === 2 && g["Teachers & Priests"].rank[2] === 2);
+const sumText = Object.values(sum.cells).map(c => String(c.v)).join("|");
+check("summary tab contains no names", !/Sam|Smith|Jones|Tia|Lee|Long/.test(sumText));
+const hdrRow = Object.keys(sum.cells).find(k => sum.cells[k].v === "Activity").split(",")[0];
+check("compare table sorted by Everyone rank (first row rank 1)", sum.cells[`${+hdrRow + 1},2`].v === 1);
+const gapCol = 2 + 4 * 2;
+check("gap = max - min across the three groups", (() => {
+  const r = Object.keys(sum.cells).find(k => sum.cells[k].v === ACTS[1] && +k.split(",")[0] > +hdrRow).split(",")[0];
+  // activity 1: Deacons 0 wins/ some shows -> 0, T&P 1, Leaders 0 -> gap 1
+  return sum.cells[`${r},${gapCol}`].v === 1;
+})());
+const before = Object.keys(sum.cells).length;
+gs.rebuildSummary();
+check("rebuild replaces, does not append", Object.keys(sum.cells).length === before);
+// A summary failure must not break intake.
+const saved = tabs["2027 Results Summary"]; tabs["2027 Results Summary"] = { clear() { throw new Error("boom"); } };
+r = post({ first: "Err", last: "Test", role: "Priest", comment: "", votes: [[0, 1, 0]], complete: true });
+check("intake still saves if summary fails", r.ok === true);
+tabs["2027 Results Summary"] = saved;
 //, sheet.getLastRow() === 3);
 
 console.log(fails ? `\n${fails} failed` : "\nall passed");

@@ -57,21 +57,14 @@ Group results should pool: sum wins and appearances across people from column AG
 - Otherwise replace the existing row (finished replaces unfinished, newer replaces older of the same status).
 - A typo ("Jon" vs "John") makes two rows. The owner merges these by hand.
 
-## Owner-only results (not yet built for the public version)
+## Owner-only results (built 2026-11-23: both options, group totals only)
 
-The old artifact had these views, all computed from the pooled votes:
+Decision: both, and no per-person view (no names in either).
 
-- Results with four filters: Everyone, Deacons, Teachers & Priests, Leaders. Ranked bars with win rate, wins/appearances, participant count (and how many are unfinished), suggestions, Copy as CSV.
-- By boy: per person top five and bottom five, role, pairs answered, an "Unfinished" badge, comment.
-- Compare: one row per activity, columns Everyone / Deacons / Teachers & Priests / Leaders showing rank and win rate (orange shading by win rate), plus Gap (highest minus lowest group win rate, orange at 30 or more), sortable by any column.
+1. **Sheet tab `2027 Results Summary`.** Written by `rebuildSummary()` in `apps-script/Code.gs`. It runs after every submission (a failure there never blocks saving) and from the sheet menu YM Results > Rebuild summary. Shows people/finished/unfinished/pairs per group, then one row per activity with rank and win rate for Everyone, Deacons, Teachers & Priests, Leaders, and Gap (highest minus lowest of the three role groups, shaded at 30%+). Pooled from column AG. Anyone with access to the YM Sheet can see this tab.
+2. **Private Claude dashboard** (owner-only): https://claude.ai/artifact/2Pof1ZJoMgQcEErUunaEBn. It reads columns C to AG of `2027 Survey Results` live through Katie's Google Sheets connector (never column B, the names) and computes the same numbers in the page. Views: summary line, ranked bars per group, Compare table, who has answered.
 
-The code for all three is in `src/claude-artifact/index.html` (`resultsHtml`, `peopleHtml`, `compareHtml`, `tally`, `dedupe`).
-
-A public page cannot show these safely. Options for the public version, to decide in Claude Code:
-
-1. Sheet only: add pivot-style formulas on a second tab (per-group win rates and rank). Simplest, no extra hosting.
-2. A separate private dashboard (a local HTML file or a Claude artifact using the owner's Google Sheets connector) that reads the sheet.
-3. Both. Recommended starting point: option 1, then add 2 if Katie wants the Compare table.
+The old artifact's code (`src/claude-artifact/index.html`: `resultsHtml`, `peopleHtml`, `compareHtml`, `tally`) is kept for reference.
 
 ## Public-version architecture
 
