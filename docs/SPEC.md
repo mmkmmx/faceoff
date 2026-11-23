@@ -77,7 +77,8 @@ A public page cannot show these safely. Options for the public version, to decid
 
 - Static page hosted on GitHub Pages. No framework needed. Mobile first, light and dark themes.
 - The page does not read anything from the server. It only submits.
-- Submission: `fetch(WEB_APP_URL, {method: "POST", mode: "no-cors", headers: {"Content-Type": "text/plain"}, body: JSON.stringify(payload)})`. Apps Script web apps do not send CORS headers, so the response cannot be read. Treat a resolved fetch as "sent".
+- Submission: `fetch(WEB_APP_URL, {method: "POST", headers: {"Content-Type": "text/plain"}, body: JSON.stringify(payload)})`. text/plain avoids a CORS preflight. Apps Script replies (via its googleusercontent redirect) with `Access-Control-Allow-Origin: *`, so the page reads `{ok, error}` and only shows "Thank you" when `ok` is true. (Changed 2026-11-23: the first version used `no-cors`, could not see rejections, and lost a phone test's answers silently.)
+- The page stores one answer per pair index (`answers[i] = winner`), so a pair can never be counted twice. The old list-of-votes version could record a pair twice when Back or Skip was tapped during the 140 ms highlight, and the script then rejected every later save.
 - Autosave every 5 pairs and a final submit use the same endpoint. Also keep progress in `localStorage` so a boy can resume on the same device (new, not in the old artifact).
 - Apps Script web app: "Execute as: me", "Who has access: Anyone". It validates input, then writes the sheet row (see `apps-script/Code.gs`).
 

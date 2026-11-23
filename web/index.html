@@ -114,7 +114,7 @@ const LS_KEY = "ym-pairrank-2027-progress";
 /* ---------- State ---------- */
 let step = "intro";          // intro | about | pairs | send | done
 let first = "", last = "", role = null;
-let pairs = [], idx = 0, votes = [];
+let pairs = [], idx = 0, answers = {};  // answers[pairIndex] = winner; one slot per pair, so a pair can never be counted twice
 let lastAutosaveCount = 0;
 let sendError = "";
 
@@ -127,7 +127,13 @@ const configured = () => /^https:\/\/script\.google\.com\/.+\/exec$/.test(WEB_AP
 function lsGet(){ try { return JSON.parse(localStorage.getItem(LS_KEY)||"null"); } catch(e){ return null; } }
 function lsSet(v){ try { localStorage.setItem(LS_KEY, JSON.stringify(v)); } catch(e){} }
 function lsClear(){ try { localStorage.removeItem(LS_KEY); } catch(e){} }
-function saveLocal(){ lsSet({first, last, role, pairs, idx, votes, step, lastAutosaveCount}); }
+function saveLocal(){ lsSet({first, last, role, pairs, idx, answers, step, lastAutosaveCount}); }
+// Votes as [a, b, winner], in the order the pairs were shown.
+function votes(){
+  const out = [];
+  pairs.forEach(([a,b],i)=>{ const w = answers[i]; if (w===a || w===b) out.push([a,b,w]); });
+  return out;
+}
 
 // Balanced random pairs: repeatedly take the unused pair whose options have appeared least.
 function buildPairs(n){
@@ -161,18 +167,25 @@ function tally(list){
 /* ---------- Sending ---------- */
 function payload(complete){
   return {first: first.trim().slice(0,30), last: last.trim().slice(0,30), role,
-          votes: votes.slice(0, PAIRS_PER_PERSON), comment: "",
+          votes: votes().slice(0, PAIRS_PER_PERSON), comment: "",
           complete, at: Date.now()};
 }
-// Apps Script sends no CORS headers, so the reply cannot be read. A resolved fetch means "sent".
-function post(body, keepalive){
-  if (!configured()) return Promise.reject(new Error("not configured"));
-  return fetch(WEB_APP_URL, {method:"POST", mode:"no-cors", keepalive: !!keepalive,
+// Sent as text/plain so there is no CORS preflight. Apps Script replies with
+// Access-Control-Allow-Origin: *, so the page can read {ok, error} and only
+// treats the answers as saved when the script says ok.
+async function post(body, keepalive){
+  if (!configured()) throw new Error("not configured");
+  const res = await fetch(WEB_APP_URL, {method:"POST", keepalive: !!keepalive,
     headers:{"Content-Type":"text/plain;charset=utf-8"}, body: JSON.stringify(body)});
+  let reply = null;
+  try { reply = await res.json(); } catch(e){}
+  if (!reply || reply.ok !== true) throw new Error("rejected: " + (reply && reply.error || res.status));
+  return reply;
 }
 function autosave(){
-  if (votes.length - lastAutosaveCount < AUTOSAVE_EVERY) return;
-  lastAutosaveCount = votes.length;
+  const n = votes().length;
+  if (n - lastAutosaveCount < AUTOSAVE_EVERY) return;
+  lastAutosaveCount = n;
   post(payload(false), true).catch(()=>{}); // best effort; the final submit carries everything
 }
 let sending = false;
@@ -181,14 +194,16 @@ async function submit(){
   step = "send"; sending = true; sendError = ""; saveLocal(); render();
   try {
     await post(payload(true), false);
-    const mine = votes.slice();
+    const mine = votes();
     lsClear();
     sending = false; step = "done"; render(mine);
   } catch(e){
     sending = false;
     sendError = !configured()
       ? "This survey is not connected yet. Please tell the survey organizer. Your answers are saved on this device."
-      : "Your answers could not be sent. Check that you are online, then tap Try again. Your answers are saved on this device.";
+      : /^rejected/.test(e.message)
+        ? "The survey could not save your answers. Your answers are kept on this device. Please tap Try again, and if it keeps failing tell the survey organizer."
+        : "Your answers could not be sent. Check that you are online, then tap Try again. Your answers are saved on this device.";
     render();
   }
 }
@@ -207,7 +222,7 @@ function render(doneVotes){
 
 function introHtml(){
   const saved = lsGet();
-  const resume = saved && saved.role && Array.isArray(saved.pairs) && saved.pairs.length;
+  const resume = saved && saved.role && saved.answers && Array.isArray(saved.pairs) && saved.pairs.length;
   return `<div class="stack">
     <div class="stack">
       <h1>What should we do in 2027?</h1>
@@ -215,7 +230,7 @@ function introHtml(){
     </div>
     ${resume ? `<div class="card stack">
       <h3>Welcome back, ${esc(saved.first)}</h3>
-      <p style="margin:0">You answered ${saved.votes.length} pairs on this device. Pick up where you left off?</p>
+      <p style="margin:0">You answered ${Object.keys(saved.answers||{}).length} pairs on this device. Pick up where you left off?</p>
       <div class="row"><button class="btn" id="resume" type="button">Keep going</button>
       <button class="btn ghost" id="discard" type="button">Start over</button></div>
     </div>` : ""}
@@ -298,45 +313,44 @@ function doneHtml(mine){
 }
 
 /* ---------- Events ---------- */
-function unvoteAt(i){ const [a,b] = pairs[i]; votes = votes.filter(v=>!(v[0]===a&&v[1]===b)); }
 
 function bind(){
   const on = (id,fn)=>{ const el=$(id); if(el) el.addEventListener("click",fn); };
   on("#start",()=>{ step="about"; render(); });
   on("#resume",()=>{
     const s = lsGet(); if (!s) { render(); return; }
-    ({first, last, role, pairs, idx, votes} = s);
+    ({first, last, role, pairs, idx} = s);
+    answers = s.answers || {};
     lastAutosaveCount = s.lastAutosaveCount || 0;
     step = (s.step==="send" || s.step==="extra" || idx>=pairs.length) ? "send" : "pairs";
     if (step==="pairs") idx = Math.min(idx, pairs.length-1);
     render();
   });
-  on("#discard",()=>{ lsClear(); first=last=""; role=null; pairs=[]; votes=[]; idx=0; render(); });
+  on("#discard",()=>{ lsClear(); first=last=""; role=null; pairs=[]; answers={}; idx=0; render(); });
   document.querySelectorAll("[data-g]").forEach(b=>b.addEventListener("click",()=>{ role=b.dataset.g; render(); }));
   const refresh=()=>{ const t=$("#to-pairs"); if(t) t.disabled=!(role&&first.trim()&&last.trim()); };
   const fi=$("#first"); if(fi) fi.addEventListener("input",()=>{ first=fi.value; refresh(); });
   const la=$("#last"); if(la) la.addEventListener("input",()=>{ last=la.value; refresh(); });
-  on("#to-pairs",()=>{ pairs=buildPairs(PAIRS_PER_PERSON); idx=0; votes=[]; lastAutosaveCount=0; step="pairs"; saveLocal(); render(); });
+  on("#to-pairs",()=>{ pairs=buildPairs(PAIRS_PER_PERSON); idx=0; answers={}; lastAutosaveCount=0; step="pairs"; saveLocal(); render(); });
   document.querySelectorAll(".pick").forEach(b=>b.addEventListener("click",()=>choose(Number(b.dataset.w))));
-  on("#skip",()=>advance());
-  on("#back",()=>{ if(idx>0){ idx--; unvoteAt(idx); saveLocal(); render(); } });
-  on("#back-send",()=>{ sendError=""; if(idx>=pairs.length){ idx=pairs.length-1; unvoteAt(idx); } step="pairs"; saveLocal(); render(); });
-  on("#finish",submit);
+  on("#skip",()=>{ if(choosing) return; delete answers[idx]; idx++; next(); });
+  on("#back",()=>{ if(choosing || idx===0) return; idx--; delete answers[idx]; saveLocal(); render(); });
+  on("#back-send",()=>{ sendError=""; if(idx>=pairs.length){ idx=pairs.length-1; delete answers[idx]; } step="pairs"; saveLocal(); render(); });
+  on("#finish",()=>{ if(!choosing) submit(); });
   on("#submit",submit);
-  on("#again",()=>{ lsClear(); first=last=""; role=null; pairs=[]; votes=[]; idx=0; lastAutosaveCount=0; step="about"; render(); });
+  on("#again",()=>{ lsClear(); first=last=""; role=null; pairs=[]; answers={}; idx=0; lastAutosaveCount=0; step="about"; render(); });
 }
 
 let choosing = false;
 function choose(w){
-  if (choosing) return;          // ignore double taps
+  if (choosing) return;          // ignore double taps and other buttons during the flash
   choosing = true;
-  const [a,b]=pairs[idx];
-  votes.push([a,b,w]);
+  answers[idx] = w; idx++;       // record and move on right away, so closing the page mid-flash loses nothing
+  saveLocal();
   const el = document.querySelector(`.pick[data-w="${w}"]`); if(el) el.classList.add("chosen");
-  setTimeout(()=>{ choosing=false; advance(); },140);
+  setTimeout(()=>{ choosing=false; next(); },140);
 }
-function advance(){
-  idx++;
+function next(){
   if (idx>=pairs.length) { submit(); return; }
   saveLocal();
   autosave();
