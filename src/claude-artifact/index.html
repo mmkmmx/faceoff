@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2027 Activity Pair Rank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: trail-sign header, one task per screen, two big tap cards facing off. */
+:root{
+  --bg:#f1f3ee; --surface:#ffffff; --ink:#18261f; --muted:#5b6b62;
+  --line:#d5dbd2; --accent:#d9561f; --accent-ink:#ffffff; --pine:#1f4a37; --pine-soft:#dfe9e2;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif; --body:"Barlow",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#101a15; --surface:#18261f; --ink:#e8efe9; --muted:#9db0a4;
+    --line:#2c3f35; --accent:#f07a45; --accent-ink:#1a0d06; --pine:#7fc2a0; --pine-soft:#1f3329;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#101a15; --surface:#18261f; --ink:#e8efe9; --muted:#9db0a4;
+  --line:#2c3f35; --accent:#f07a45; --accent-ink:#1a0d06; --pine:#7fc2a0; --pine-soft:#1f3329;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.45}
+h1,h2,h3{font-family:var(--display);font-weight:700;letter-spacing:.01em;line-height:1.05;margin:0;text-wrap:balance}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px 48px}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0 12px}
+.brand{font-family:var(--display);font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.06em;color:var(--pine)}
+nav{display:flex;gap:4px;background:var(--pine-soft);padding:4px;border-radius:999px}
+nav button{border:0;background:transparent;padding:8px 16px;border-radius:999px;font-weight:600;font-size:15px;color:var(--muted)}
+nav button[aria-current="page"]{background:var(--pine);color:var(--bg)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px}
+.stack{display:flex;flex-direction:column;gap:16px}
+h1{font-size:clamp(36px,8vw,56px)}
+h2{font-size:clamp(28px,6vw,38px)}
+.lede{color:var(--muted);margin:0}
+.btn{border:0;border-radius:10px;padding:14px 22px;font-weight:600;font-size:17px;background:var(--accent);color:var(--accent-ink);min-height:48px}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.progress{height:8px;border-radius:99px;background:var(--pine-soft);overflow:hidden}
+.progress>i{display:block;height:100%;background:var(--accent);transition:width .25s}
+.meta{display:flex;justify-content:space-between;font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:10px 16px;font-weight:500}
+.chip[aria-pressed="true"]{background:var(--pine);color:var(--bg);border-color:var(--pine)}
+.versus{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:stretch}
+.pick{border:2px solid var(--line);background:var(--surface);border-radius:16px;padding:20px;min-height:170px;display:flex;align-items:center;justify-content:center;text-align:center;font-family:var(--display);font-weight:700;font-size:clamp(26px,5.5vw,38px);line-height:1.05;transition:transform .12s,border-color .12s,background .12s}
+.pick:hover{border-color:var(--accent)}
+.pick:active{transform:scale(.98)}
+.pick.chosen{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.vs{align-self:center;font-family:var(--display);font-weight:700;color:var(--muted);font-size:20px}
+.hint{font-size:14px;color:var(--muted);text-align:center}
+textarea{width:100%;min-height:110px;border:1px solid var(--line);border-radius:10px;padding:12px;font:inherit;background:var(--bg);color:var(--ink);resize:vertical}
+.bars{display:flex;flex-direction:column;gap:10px}
+.bar{display:grid;grid-template-columns:28px minmax(0,1fr) 62px;gap:10px;align-items:center}
+.bar .rk{font-family:var(--display);font-weight:700;font-size:20px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.bar .nm{font-weight:600;line-height:1.2}
+.bar .nm small{display:block;font-weight:400;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.bar .track{height:10px;background:var(--pine-soft);border-radius:99px;margin-top:5px;overflow:hidden}
+.bar .track i{display:block;height:100%;background:var(--pine);border-radius:99px}
+.bar:nth-child(-n+5) .track i{background:var(--accent)}
+.bar .pc{font-family:var(--display);font-weight:700;font-size:22px;text-align:right;font-variant-numeric:tabular-nums}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.stat{background:var(--pine-soft);border-radius:12px;padding:12px 14px}
+.stat b{display:block;font-family:var(--display);font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
+.stat span{font-size:13px;color:var(--muted)}
+.note{font-size:14px;color:var(--muted);background:var(--pine-soft);border-radius:10px;padding:10px 12px}
+.sr{position:absolute;left:-9999px}
+[hidden]{display:none!important}
+input[type=text]{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px;font:inherit;background:var(--bg);color:var(--ink);min-height:48px}
+label.f{font-weight:600;display:block;margin-bottom:6px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table.cmp{border-collapse:collapse;width:100%;min-width:560px;font-variant-numeric:tabular-nums}
+.cmp th,.cmp td{padding:8px 10px;text-align:center;border-top:1px solid var(--line)}
+.cmp thead th{border-top:0;position:sticky;top:0;background:var(--surface);vertical-align:bottom}
+.cmp th:first-child,.cmp td:first-child{text-align:left;font-weight:600;min-width:170px}
+.cmp .sortbtn{border:0;background:transparent;font-family:var(--display);font-weight:700;font-size:18px;line-height:1.1;cursor:pointer;padding:4px;color:var(--ink)}
+.cmp .sortbtn[aria-pressed="true"]{color:var(--accent);text-decoration:underline}
+.cmp small{display:block;font-weight:400;color:var(--muted);font-size:12px;font-family:var(--body)}
+.cmp td.gap.big{font-weight:700;color:var(--accent)}
+.cmp td b{font-family:var(--display);font-size:18px}
+.names{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:420px){.names{grid-template-columns:1fr}}
+.badge{font-size:12px;font-weight:600;border-radius:99px;padding:2px 8px;background:var(--accent);color:var(--accent-ink);margin-left:8px;vertical-align:middle;font-family:var(--body)}
+.person{display:flex;flex-direction:column;gap:8px;padding:14px 0;border-top:1px solid var(--line)}
+.person:first-child{border-top:0;padding-top:0}
+.person h3{font-size:24px}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{background:var(--pine-soft);border-radius:999px;padding:4px 10px;font-size:14px}
+.tag.win{background:var(--accent);color:var(--accent-ink);font-weight:600}
+@media (max-width:560px){
+  .versus{grid-template-columns:1fr;gap:8px}
+  .vs{text-align:center}
+  .pick{min-height:120px}
+  .stats{grid-template-columns:1fr 1fr 1fr}
+  .stat b{font-size:24px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">YM Pair Rank</div>
+    <nav aria-label="Sections">
+      <button id="nav-survey" type="button">Survey</button>
+      <button id="nav-results" type="button" hidden>Results</button>
+      <button id="nav-compare" type="button" hidden>Compare</button>
+      <button id="nav-people" type="button" hidden>By boy</button>
+    </nav>
+  </header>
+  <main id="app" aria-live="polite"></main>
+</div>
+
+<script>
+/* ---------- Config ---------- */
+// Activities flagged "Yes" under "2027 Module" in the Activity Master List.
+const ACTIVITIES = [
+  "3D Printing","Auto Maintenance / Repair","Bug Hunting","Camping / Survival",
+  "Construction / Home Repairs","Cooking","Entrepreneurship / Business","Fencing",
+  "First Aid","Fishing","Game Design","Geocaching","Hiking","Mountain Biking",
+  "Movie Making","Paintball","Personal Finance","Photography","Pinewood Derby",
+  "Rock Climbing","Shooting","Skiing / Sledding","Sports / Fitness",
+  "Swimming / Water Polo","Welding","Wood Working"
+];
+// 100 pairs puts each of the 26 activities in about 7.7 comparisons per person.
+// Simulated boys: this found the true top five about 64% of the time for one boy and 85% for a group of 10.
+const PAIRS_PER_PERSON = 100;
+const MIN_PAIRS = 30;       // people may finish early after this many pairs
+const GROUPS = ["Deacon","Teacher","Priest","Leader"];
+// Results are compiled into three groups.
+const RESULT_GROUPS = [["Deacons",["Deacon"]],["Teachers & Priests",["Teacher","Priest"]],["Leaders",["Leader"]]];
+const groupIdx = r => RESULT_GROUPS.findIndex(g=>g[1].includes(r.group));
+const inFilter = r => filter==="Everyone" || (RESULT_GROUPS[groupIdx(r)]||[])[0]===filter;
+const LS_KEY = "ym-pairrank-2027";
+
+/* ---------- State ---------- */
+let db = null, uid = null;
+let all = [];                 // all responses (shared or local)
+let view = "survey";          // survey | results
+let step = "intro";           // intro | about | pairs | extra | done
+let group = null, comment = "";
+let pairs = [], idx = 0, votes = [];
+let filter = "Everyone";
+let status = "Loading shared results…";
+let first = "", last = "", roster = [], canSee = false;
+let rosterDocs = [], draftDocs = [];
+const fullName = () => (first.trim() + " " + last.trim()).replace(/\s+/g," ").trim();
+const nameKey = n => String(n||"").toLowerCase().replace(/\s+/g," ").trim();
+
+// One record per person. A finished survey beats any draft; otherwise the newest record wins.
+function dedupe(done, drafts){
+  const best = new Map();
+  const consider = (r, complete) => {
+    if (!r || !r.name || !Array.isArray(r.votes)) return;
+    const k = nameKey(r.name), rec = {...r, complete};
+    const cur = best.get(k);
+    if (!cur || (rec.complete && !cur.complete) || (rec.complete===cur.complete && (rec.at||0) > (cur.at||0))) best.set(k, rec);
+  };
+  done.forEach(r=>consider(r,true));
+  drafts.forEach(r=>consider(r,false));
+  return [...best.values()];
+}
+function rebuild(){ all = dedupe(rosterDocs, draftDocs); roster = all; }
+
+/* ---------- Helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const shuffle = a => { a = a.slice(); for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+function lsGet(){ try { return JSON.parse(localStorage.getItem(LS_KEY)||"null"); } catch(e){ return null; } }
+function lsSet(v){ try { localStorage.setItem(LS_KEY, JSON.stringify(v)); } catch(e){} }
+
+// Balanced random pairs: repeatedly take the unused pair whose options have appeared least.
+function buildPairs(n){
+  const count = Array(ACTIVITIES.length).fill(0);
+  let pool = [];
+  for (let i=0;i<ACTIVITIES.length;i++) for (let j=i+1;j<ACTIVITIES.length;j++) pool.push([i,j]);
+  pool = shuffle(pool);
+  const out = [];
+  while (out.length < n && pool.length){
+    let best = 0, bestScore = Infinity;
+    for (let k=0;k<pool.length;k++){
+      const s = count[pool[k][0]] + count[pool[k][1]];
+      if (s < bestScore){ bestScore = s; best = k; }
+    }
+    const [a,b] = pool.splice(best,1)[0];
+    count[a]++; count[b]++;
+    out.push(Math.random()<.5 ? [a,b] : [b,a]);
+  }
+  return out; // kept in selection order so any early finish still covers every activity evenly
+}
+
+function tally(list){
+  const wins = Array(ACTIVITIES.length).fill(0), seen = Array(ACTIVITIES.length).fill(0);
+  let nVotes = 0;
+  list.forEach(r => (r.votes||[]).forEach(v => {
+    if (!Array.isArray(v) || v.length < 3) return;
+    const [a,b,w] = v;
+    if (!(a in ACTIVITIES) || !(b in ACTIVITIES) || (w!==a && w!==b)) return;
+    seen[a]++; seen[b]++; wins[w]++; nVotes++;
+  }));
+  const rows = ACTIVITIES.map((name,i)=>({i,name,wins:wins[i],seen:seen[i],rate:seen[i]?wins[i]/seen[i]:0}));
+  rows.sort((x,y)=> y.rate-x.rate || y.seen-x.seen || x.name.localeCompare(y.name));
+  return {rows, nVotes};
+}
+
+function normalize(snap){
+  if (!snap) return [];
+  if (Array.isArray(snap)) return snap.map(d => (d && typeof d.data==="function") ? d.data() : d);
+  const docs = snap.docs || [];
+  if (docs.length || "docs" in snap) return docs.map(d => typeof d.data==="function" ? d.data() : d);
+  const out = []; if (typeof snap.forEach==="function") snap.forEach(d => out.push(typeof d.data==="function" ? d.data() : d));
+  return out;
+}
+
+/* ---------- Rendering ---------- */
+function render(){
+  $("#nav-survey").setAttribute("aria-current", view==="survey" ? "page" : "false");
+  $("#nav-results").setAttribute("aria-current", view==="results" ? "page" : "false");
+  const app = $("#app");
+  if (!canSee && view !== "survey") view = "survey";
+  $("#nav-results").hidden = !canSee;
+  $("#nav-people").hidden = !canSee;
+  $("#nav-people").setAttribute("aria-current", view==="people" ? "page" : "false");
+  $("#nav-compare").hidden = !canSee;
+  $("#nav-compare").setAttribute("aria-current", view==="compare" ? "page" : "false");
+  if (view === "compare" && canSee) { app.innerHTML = compareHtml(); bindCompare(); return; }
+  if (view === "people" && canSee) { app.innerHTML = peopleHtml(); bindPeople(); return; }
+  if (view === "results") { app.innerHTML = resultsHtml(); bindResults(); return; }
+  if (step === "intro") app.innerHTML = introHtml();
+  else if (step === "about") app.innerHTML = aboutHtml();
+  else if (step === "pairs") app.innerHTML = pairsHtml();
+  else if (step === "extra") app.innerHTML = extraHtml();
+  else app.innerHTML = doneHtml();
+  bindSurvey();
+}
+
+function introHtml(){
+  return `<div class="stack">
+    <div class="stack">
+      <h1>What should we do in 2027?</h1>
+      <p class="lede">${ACTIVITIES.length} activity ideas are on the table. You will see two at a time and tap the one you would rather do. It takes about seven minutes.</p>
+    </div>
+    <div class="card stack">
+      <div><h3>How it works</h3></div>
+      <p style="margin:0">Each person votes on ${PAIRS_PER_PERSON} random pairs. Every activity earns a win rate: how often it was picked when it appeared. The most-picked activities become our 2027 modules.</p>
+      <div class="row"><button class="btn" id="start" type="button">Start the survey</button></div>
+      <div class="note">We ask for your name so leaders can plan around what each boy likes. Only the survey organizer can see names and results. Nobody else sees what other people picked.</div>
+    </div>
+  </div>`;
+}
+
+function aboutHtml(){
+  return `<div class="stack">
+    <div class="meta"><span>Section 1 of 3</span><span>About you</span></div>
+    <div class="progress"><i style="width:8%"></i></div>
+    <h2>Who is answering?</h2>
+    <div class="names">
+      <div><label class="f" for="first">First name</label>
+      <input type="text" id="first" maxlength="30" autocomplete="given-name" value="${esc(first)}"></div>
+      <div><label class="f" for="last">Last name</label>
+      <input type="text" id="last" maxlength="30" autocomplete="family-name" value="${esc(last)}"></div>
+    </div>
+    <div class="chips" role="group" aria-label="Your role">
+      ${GROUPS.map(g=>`<button class="chip" type="button" data-g="${g}" aria-pressed="${group===g}">${g}</button>`).join("")}
+    </div>
+    <div class="row"><button class="btn" id="to-pairs" type="button" ${group&&first.trim()&&last.trim()?"":"disabled"}>Continue</button></div>
+  </div>`;
+}
+
+function pairsHtml(){
+  const [a,b] = pairs[idx];
+  const pct = 10 + Math.round(80 * idx / pairs.length);
+  return `<div class="stack">
+    <div class="meta"><span>Section 2 of 3 · Pair Rank</span><span>Pair ${idx+1} of ${pairs.length}</span></div>
+    <div class="progress"><i style="width:${pct}%"></i></div>
+    <h2>Which would you rather do?</h2>
+    <div class="versus" role="group" aria-label="Choose one activity">
+      <button class="pick" type="button" data-w="${a}" id="pick-a">${esc(ACTIVITIES[a])}</button>
+      <div class="vs" aria-hidden="true">VS</div>
+      <button class="pick" type="button" data-w="${b}" id="pick-b">${esc(ACTIVITIES[b])}</button>
+    </div>
+    <div class="row" style="justify-content:space-between">
+      <button class="btn ghost" id="back" type="button" ${idx===0?"disabled":""}>Back</button>
+      <div class="row">
+        <button class="btn ghost" id="skip" type="button">Skip this pair</button>
+        ${idx>=MIN_PAIRS?`<button class="btn ghost" id="finish" type="button">Finish now</button>`:""}
+      </div>
+    </div>
+    <div class="hint">Tip: on a keyboard press ← or → to choose.</div>
+  </div>`;
+}
+
+function extraHtml(){
+  return `<div class="stack">
+    <div class="meta"><span>Section 3 of 3</span><span>Anything else</span></div>
+    <div class="progress"><i style="width:95%"></i></div>
+    <h2>Anything we missed?</h2>
+    <label for="comment" class="lede">Suggest an activity or tell us what would make Wednesday nights better. Optional.</label>
+    <textarea id="comment" maxlength="500">${esc(comment)}</textarea>
+    <div class="row"><button class="btn" id="submit" type="button">Submit my answers</button>
+    <button class="btn ghost" id="back-extra" type="button">Back</button></div>
+  </div>`;
+}
+
+function doneHtml(){
+  const mine = tally([{votes}]).rows.filter(r=>r.seen).slice(0,3);
+  return `<div class="stack">
+    <h1>Thank you.</h1>
+    <p class="lede">Your ${votes.length} picks are in. ${mine.length ? "Your top picks this round:" : ""}</p>
+    ${mine.length ? `<div class="card"><div class="bars">${mine.map((r,k)=>barHtml(r,k)).join("")}</div></div>` : ""}
+    <div class="row">${canSee?`<button class="btn" id="see-results" type="button">See all results</button>`:""}
+    <button class="btn ghost" id="again" type="button">Vote again</button></div>
+  </div>`;
+}
+
+function barHtml(r,k){
+  const pc = Math.round(r.rate*100);
+  return `<div class="bar"><div class="rk">${k+1}</div>
+    <div class="nm">${esc(r.name)}<small>${r.wins} wins in ${r.seen} appearances</small><div class="track"><i style="width:${pc}%"></i></div></div>
+    <div class="pc">${pc}%</div></div>`;
+}
+
+function resultsHtml(){
+  const list = all.filter(inFilter);
+  const {rows,nVotes} = tally(list);
+  const comments = list.map(r=>r.comment).filter(c=>c && c.trim());
+  return `<div class="stack">
+    <div class="stack"><h2>Pair Rank results</h2>
+    <p class="lede">Ranked by win rate: wins divided by appearances.</p></div>
+    <div class="chips" role="group" aria-label="Filter by role">
+      ${["Everyone",...RESULT_GROUPS.map(g=>g[0])].map(g=>`<button class="chip" type="button" data-f="${esc(g)}" aria-pressed="${filter===g}">${esc(g)}</button>`).join("")}
+    </div>
+    <div class="stats">
+      <div class="stat"><b>${list.length}</b><span>participants${list.some(r=>r.complete===false)?" ("+list.filter(r=>r.complete===false).length+" unfinished)":""}</span></div>
+      <div class="stat"><b>${nVotes}</b><span>votes cast</span></div>
+      <div class="stat"><b>${rows.filter(r=>r.seen).length}/${ACTIVITIES.length}</b><span>activities seen</span></div>
+    </div>
+    ${nVotes ? `<div class="card"><div class="bars">${rows.map((r,k)=>barHtml(r,k)).join("")}</div></div>`
+             : `<div class="card"><p class="lede" style="margin:0">No votes yet${filter==="Everyone"?"":" for "+esc(filter)}. Take the survey to add the first.</p></div>`}
+    ${comments.length ? `<div class="card stack"><h3>Suggestions</h3>${comments.map(c=>`<p style="margin:0">${esc(c)}</p>`).join("")}</div>` : ""}
+    <div class="row"><button class="btn ghost" id="copy" type="button" ${nVotes?"":"disabled"}>Copy results as CSV</button>
+    <span class="hint" id="copied"></span></div>
+    <div class="note">${esc(status)}</div>
+  </div>`;
+}
+
+/* ---------- Events ---------- */
+function bindSurvey(){
+  const on = (id,fn)=>{ const el=$(id); if(el) el.addEventListener("click",fn); };
+  on("#start",()=>{ step="about"; render(); });
+  document.querySelectorAll("[data-g]").forEach(b=>b.addEventListener("click",()=>{ group=b.dataset.g; render(); }));
+  const refresh=()=>{ const t=$("#to-pairs"); if(t) t.disabled=!(group&&first.trim()&&last.trim()); };
+  const fi=$("#first"); if(fi) fi.addEventListener("input",()=>{ first=fi.value; refresh(); });
+  const la=$("#last"); if(la) la.addEventListener("input",()=>{ last=la.value; refresh(); });
+  on("#to-pairs",()=>{ pairs=buildPairs(PAIRS_PER_PERSON); idx=0; votes=[]; step="pairs"; render(); });
+  document.querySelectorAll(".pick").forEach(b=>b.addEventListener("click",()=>choose(Number(b.dataset.w))));
+  on("#skip",()=>advance());
+  on("#back",()=>{ if(idx>0){ idx--; votes = votes.filter(v=>!(v[0]===pairs[idx][0]&&v[1]===pairs[idx][1])); render(); } });
+  on("#back-extra",()=>{ if(idx>=pairs.length){ idx=pairs.length-1; votes=votes.filter(v=>!(v[0]===pairs[idx][0]&&v[1]===pairs[idx][1])); } step="pairs"; render(); });
+  on("#finish",()=>{ step="extra"; render(); });
+  on("#submit",submit);
+  on("#see-results",()=>{ view="results"; render(); });
+  on("#again",()=>{ step="intro"; group=null; comment=""; render(); });
+  const ta=$("#comment"); if(ta) ta.addEventListener("input",()=>{ comment=ta.value; });
+}
+function peopleHtml(){
+  const list = roster.filter(r=>r && r.name).sort((a,b)=>(groupIdx(a)-groupIdx(b)) || a.name.localeCompare(b.name));
+  const cards = list.map(r=>{
+    const rows = tally([r]).rows.filter(x=>x.seen);
+    const top = rows.slice(0,5), bottom = rows.slice(-5).reverse().filter(x=>!top.includes(x));
+    const pc = x => Math.round(x.rate*100)+"%";
+    return `<div class="person"><h3>${esc(r.name)}${r.complete===false?'<span class="badge">Unfinished</span>':""}</h3>
+      <div class="meta"><span>${esc(r.group||"")}</span><span>${(r.votes||[]).length} pairs answered</span></div>
+      <div class="tags" aria-label="Top five">${top.map(x=>`<span class="tag win">${esc(x.name)} ${pc(x)}</span>`).join("")||"<span class='hint'>No picks</span>"}</div>
+      ${bottom.length?`<div class="tags" aria-label="Bottom five">${bottom.map(x=>`<span class="tag">${esc(x.name)} ${pc(x)}</span>`).join("")}</div>`:""}
+      ${r.comment?`<p style="margin:0;color:var(--muted)">“${esc(r.comment)}”</p>`:""}
+    </div>`;
+  }).join("");
+  return `<div class="stack">
+    <div class="stack"><h2>Preferences by boy</h2>
+    <p class="lede">Orange tags are his five highest win rates. Grey tags are his five lowest. Only leaders see this page.</p></div>
+    <div class="card">${cards || `<p class="lede" style="margin:0">No responses yet.</p>`}</div>
+    <div class="row"><button class="btn ghost" id="copy-people" type="button" ${list.length?"":"disabled"}>Copy as CSV</button><span class="hint" id="copied"></span></div>
+  </div>`;
+}
+function bindPeople(){
+  const c=$("#copy-people"); if(!c) return;
+  c.addEventListener("click",()=>{
+    const q = s => '"'+String(s).replace(/"/g,'""')+'"';
+    const lines = ["name,role,status,pairs,top_five,bottom_five,comment"];
+    roster.filter(r=>r&&r.name).forEach(r=>{
+      const rows = tally([r]).rows.filter(x=>x.seen);
+      const top = rows.slice(0,5), bottom = rows.slice(-5).reverse().filter(x=>!top.includes(x));
+      const f = a => a.map(x=>x.name+" "+Math.round(x.rate*100)+"%").join("; ");
+      lines.push([q(r.name),q(r.group||""),r.complete===false?"unfinished":"finished",(r.votes||[]).length,q(f(top)),q(f(bottom)),q(r.comment||"")].join(","));
+    });
+    const done = ok => { const s=$("#copied"); if(s) s.textContent = ok ? "Copied." : "Copy was blocked."; };
+    try { navigator.clipboard.writeText(lines.join("\n")).then(()=>done(true),()=>done(false)); } catch(e){ done(false); }
+  });
+}
+let cmpSort = "Everyone";
+function compareData(){
+  const lists = {Everyone: all};
+  RESULT_GROUPS.forEach(g=>{ lists[g[0]] = all.filter(r=>g[1].includes(r.group)); });
+  const cols = Object.keys(lists), t = {};
+  cols.forEach(c=>{
+    const {rows,nVotes} = tally(lists[c]);
+    const seen = rows.filter(x=>x.seen), byI = {}, rank = {};
+    rows.forEach(r=>{ byI[r.i]=r; rank[r.i] = r.seen ? 1 + seen.filter(x=>x.rate>r.rate).length : null; });
+    t[c] = {byI, rank, n: lists[c].length};
+  });
+  const data = ACTIVITIES.map((name,i)=>{
+    const cell = {};
+    cols.forEach(c=>{ const r=t[c].byI[i]; cell[c] = r && r.seen ? {rank:t[c].rank[i], rate:r.rate} : null; });
+    const grp = RESULT_GROUPS.map(g=>cell[g[0]]).filter(Boolean);
+    const gap = grp.length>1 ? Math.round((Math.max(...grp.map(x=>x.rate))-Math.min(...grp.map(x=>x.rate)))*100) : null;
+    return {name,i,cell,gap};
+  });
+  const key = d => cmpSort==="Gap" ? (d.gap==null ? 1e9 : -d.gap) : (d.cell[cmpSort] ? d.cell[cmpSort].rank : 1e9);
+  data.sort((a,b)=> key(a)-key(b) || a.name.localeCompare(b.name));
+  return {cols,t,data};
+}
+function compareHtml(){
+  const {cols,t,data} = compareData();
+  const head = cols.map(c=>`<th><button class="sortbtn" type="button" data-s="${esc(c)}" aria-pressed="${cmpSort===c}">${esc(c)}</button><small>${t[c].n} people</small></th>`).join("");
+  const body = data.map(d=>`<tr><td>${esc(d.name)}</td>${cols.map(c=>{
+      const x=d.cell[c];
+      return x ? `<td style="background:color-mix(in srgb,var(--accent) ${Math.round(x.rate*60)}%,transparent)"><b>#${x.rank}</b> ${Math.round(x.rate*100)}%</td>` : `<td>-</td>`;
+    }).join("")}<td class="gap${d.gap!=null&&d.gap>=30?" big":""}">${d.gap==null?"-":d.gap}</td></tr>`).join("");
+  return `<div class="stack">
+    <div class="stack"><h2>Compare groups</h2>
+    <p class="lede">Each cell shows the activity's rank and win rate in that group. Darker orange is a higher win rate. Click a heading to sort by it.</p></div>
+    <div class="tablewrap"><table class="cmp"><thead><tr><th>Activity</th>${head}
+      <th><button class="sortbtn" type="button" data-s="Gap" aria-pressed="${cmpSort==="Gap"}">Gap</button><small>points</small></th></tr></thead>
+      <tbody>${body}</tbody></table></div>
+    <div class="note">Gap is the distance between the highest and lowest win rate among the three groups. Gaps of 30 points or more are in orange. With 8 to 12 people per group, gaps under about 25 points can be chance.</div>
+    <div class="row"><button class="btn ghost" id="copy-cmp" type="button">Copy as CSV</button><span class="hint" id="copied"></span></div>
+  </div>`;
+}
+function bindCompare(){
+  document.querySelectorAll("[data-s]").forEach(b=>b.addEventListener("click",()=>{ cmpSort=b.dataset.s; render(); }));
+  const c=$("#copy-cmp"); if(!c) return;
+  c.addEventListener("click",()=>{
+    const {cols,data} = compareData();
+    const q = x => '"'+String(x).replace(/"/g,'""')+'"';
+    const lines = ["activity,"+cols.map(c=>q(c+" rank")+","+q(c+" win rate")).join(",")+",gap_points"];
+    data.forEach(d=>lines.push([q(d.name),...cols.map(c=>d.cell[c]?d.cell[c].rank+","+(d.cell[c].rate*100).toFixed(1)+"%":","),d.gap==null?"":d.gap].join(",")));
+    const done = ok => { const s=$("#copied"); if(s) s.textContent = ok ? "Copied." : "Copy was blocked."; };
+    try { navigator.clipboard.writeText(lines.join("\n")).then(()=>done(true),()=>done(false)); } catch(e){ done(false); }
+  });
+}
+function bindResults(){
+  document.querySelectorAll("[data-f]").forEach(b=>b.addEventListener("click",()=>{ filter=b.dataset.f; render(); }));
+  const c=$("#copy"); if(c) c.addEventListener("click",copyCsv);
+}
+function choose(w){
+  const [a,b]=pairs[idx];
+  votes.push([a,b,w]);
+  const el = document.querySelector(`.pick[data-w="${w}"]`); if(el) el.classList.add("chosen");
+  setTimeout(advance,140);
+}
+function advance(){
+  idx++;
+  if (idx>=pairs.length) step="extra";
+  if (votes.length && votes.length % 5 === 0) saveDraft();
+  render();
+}
+document.addEventListener("keydown",e=>{
+  if (view!=="survey" || step!=="pairs") return;
+  if (e.key==="ArrowLeft") { const el=$("#pick-a"); if(el) el.click(); }
+  if (e.key==="ArrowRight") { const el=$("#pick-b"); if(el) el.click(); }
+});
+
+let lastDraftAt = 0;
+function saveDraft(){
+  // Unfinished surveys are kept in "drafts". A draft never overwrites a finished survey.
+  if (!db || !uid) return;
+  const rec = {name: fullName().slice(0,60), first: first.trim(), last: last.trim(), group, votes: votes.slice(), at: Date.now()};
+  lastDraftAt = rec.at;
+  try { Promise.resolve(db.collection("drafts").doc(uid).set(rec)).catch(()=>{}); } catch(e){}
+}
+
+async function submit(){
+  const btn=$("#submit"); if(btn){ btn.disabled=true; btn.textContent="Saving…"; }
+  const rec = {name: fullName().slice(0,60), first: first.trim(), last: last.trim(), group, votes, comment: comment.trim().slice(0,500), at: Date.now()};
+  lsSet(rec);
+  try {
+    if (db && uid) await db.collection("roster").doc(uid).set(rec);
+    else status = "Saved on this device only. Open the shared link while signed in to add your votes to the group results.";
+  } catch(e){
+    status = "Could not save to the shared results. Your answers are kept on this device.";
+  }
+  if (!db) { all = [rec]; }
+  step="done"; render();
+}
+
+function copyCsv(){
+  const list = all.filter(inFilter);
+  const {rows} = tally(list);
+  const csv = "rank,activity,wins,appearances,win_rate\n" +
+    rows.map((r,k)=>[k+1,'"'+r.name.replace(/"/g,'""')+'"',r.wins,r.seen,(r.rate*100).toFixed(1)+"%"].join(",")).join("\n");
+  const done = ok => { const s=$("#copied"); if(s) s.textContent = ok ? "Copied." : "Copy was blocked. Select the text from the table instead."; };
+  try { navigator.clipboard.writeText(csv).then(()=>done(true),()=>done(false)); } catch(e){ done(false); }
+}
+
+/* ---------- Shared storage ---------- */
+async function initShared(){
+  try {
+    const user = await claude.use("user");
+    db = await claude.use("db");
+    if (user && typeof user.id==="function") uid = await user.id();
+    try { canSee = !!(user && (await user.isOwner())); } catch(e){ canSee = false; }
+  } catch(e){ db = null; }
+  if (!db || !uid){
+    db = null;
+    const mine = lsGet();
+    all = mine ? [mine] : [];
+    status = "Shared results need a signed-in viewer. You are seeing only this device's votes.";
+    render(); return;
+  }
+  status = "Live results from everyone who has voted.";
+  const timer = setTimeout(()=>{ status="Shared results are slow to load. Showing what is available."; render(); }, 10000);
+  if (!canSee) { clearTimeout(timer); render(); return; }
+  const fail = () => { clearTimeout(timer); status="Could not read shared results."; render(); };
+  const watch = async (path, setter) => {
+    const col = db.collection(path);
+    const apply = snap => { clearTimeout(timer); setter(normalize(snap)); rebuild(); render(); };
+    if (typeof col.onSnapshot==="function") col.onSnapshot(apply, fail);
+    else if (typeof col.get==="function") apply(await col.get());
+  };
+  try {
+    await watch("roster", d => { rosterDocs = d; });
+    await watch("drafts", d => { draftDocs = d; });
+  } catch(e){ fail(); }
+}
+
+$("#nav-survey").addEventListener("click",()=>{ view="survey"; render(); });
+$("#nav-results").addEventListener("click",()=>{ view="results"; render(); });
+$("#nav-compare").addEventListener("click",()=>{ view="compare"; render(); });
+$("#nav-people").addEventListener("click",()=>{ view="people"; render(); });
+render();
+initShared();
+</script>
+</body>
+</html>

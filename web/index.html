@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2027 Activity Pair Rank</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f1f3ee; --surface:#ffffff; --ink:#18261f; --muted:#5b6b62;
+  --line:#d5dbd2; --accent:#d9561f; --accent-ink:#ffffff; --pine:#1f4a37; --pine-soft:#dfe9e2;
+  --warn-bg:#fbe7dc; --warn-ink:#7a2a08;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif; --body:"Barlow",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#101a15; --surface:#18261f; --ink:#e8efe9; --muted:#9db0a4;
+    --line:#2c3f35; --accent:#f07a45; --accent-ink:#1a0d06; --pine:#7fc2a0; --pine-soft:#1f3329;
+    --warn-bg:#3a2015; --warn-ink:#ffc8ad;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#101a15; --surface:#18261f; --ink:#e8efe9; --muted:#9db0a4;
+  --line:#2c3f35; --accent:#f07a45; --accent-ink:#1a0d06; --pine:#7fc2a0; --pine-soft:#1f3329;
+  --warn-bg:#3a2015; --warn-ink:#ffc8ad;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.45}
+h1,h2,h3{font-family:var(--display);font-weight:700;letter-spacing:.01em;line-height:1.05;margin:0;text-wrap:balance}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px 48px}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0 12px}
+.brand{font-family:var(--display);font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.06em;color:var(--pine)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px}
+.stack{display:flex;flex-direction:column;gap:16px}
+h1{font-size:clamp(36px,8vw,56px)}
+h2{font-size:clamp(28px,6vw,38px)}
+.lede{color:var(--muted);margin:0}
+.btn{border:0;border-radius:10px;padding:14px 22px;font-weight:600;font-size:17px;background:var(--accent);color:var(--accent-ink);min-height:48px}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.progress{height:8px;border-radius:99px;background:var(--pine-soft);overflow:hidden}
+.progress>i{display:block;height:100%;background:var(--accent);transition:width .25s}
+.meta{display:flex;justify-content:space-between;gap:12px;font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:10px 16px;font-weight:500;min-height:44px}
+.chip[aria-pressed="true"]{background:var(--pine);color:var(--bg);border-color:var(--pine)}
+.versus{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:stretch}
+.pick{border:2px solid var(--line);background:var(--surface);border-radius:16px;padding:20px;min-height:170px;display:flex;align-items:center;justify-content:center;text-align:center;font-family:var(--display);font-weight:700;font-size:clamp(26px,5.5vw,38px);line-height:1.05;transition:transform .12s,border-color .12s,background .12s;touch-action:manipulation}
+.pick:hover{border-color:var(--accent)}
+.pick:active{transform:scale(.98)}
+.pick.chosen{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.vs{align-self:center;font-family:var(--display);font-weight:700;color:var(--muted);font-size:20px}
+.hint{font-size:14px;color:var(--muted);text-align:center}
+textarea{width:100%;min-height:110px;border:1px solid var(--line);border-radius:10px;padding:12px;font:inherit;background:var(--bg);color:var(--ink);resize:vertical}
+.bars{display:flex;flex-direction:column;gap:10px}
+.bar{display:grid;grid-template-columns:28px minmax(0,1fr) 62px;gap:10px;align-items:center}
+.bar .rk{font-family:var(--display);font-weight:700;font-size:20px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.bar .nm{font-weight:600;line-height:1.2}
+.bar .track{height:10px;background:var(--pine-soft);border-radius:99px;margin-top:5px;overflow:hidden}
+.bar .track i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.bar .pc{font-family:var(--display);font-weight:700;font-size:22px;text-align:right;font-variant-numeric:tabular-nums}
+.note{font-size:14px;color:var(--muted);background:var(--pine-soft);border-radius:10px;padding:10px 12px}
+.warn{font-size:15px;color:var(--warn-ink);background:var(--warn-bg);border-radius:10px;padding:12px 14px}
+[hidden]{display:none!important}
+input[type=text]{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px;font:inherit;background:var(--bg);color:var(--ink);min-height:48px}
+label.f{font-weight:600;display:block;margin-bottom:6px}
+.names{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:420px){.names{grid-template-columns:1fr}}
+@media (max-width:560px){
+  .versus{grid-template-columns:1fr;gap:8px}
+  .vs{text-align:center}
+  .pick{min-height:120px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top"><div class="brand">YM Pair Rank</div></header>
+  <main id="app" aria-live="polite"></main>
+</div>
+
+<script>
+/* ============================================================
+   SET THIS after deploying the Apps Script web app.
+   It is the URL that ends in /exec.
+   ============================================================ */
+const WEB_APP_URL = "PASTE_APPS_SCRIPT_EXEC_URL_HERE";
+
+/* ---------- Config ---------- */
+// Order matters: votes store indexes into this list. Must match data/activities-2027.json and apps-script/Code.gs.
+const ACTIVITIES = [
+  "3D Printing","Auto Maintenance / Repair","Bug Hunting","Camping / Survival",
+  "Construction / Home Repairs","Cooking","Entrepreneurship / Business","Fencing",
+  "First Aid","Fishing","Game Design","Geocaching","Hiking","Mountain Biking",
+  "Movie Making","Paintball","Personal Finance","Photography","Pinewood Derby",
+  "Rock Climbing","Shooting","Skiing / Sledding","Sports / Fitness",
+  "Swimming / Water Polo","Welding","Wood Working"
+];
+const PAIRS_PER_PERSON = 100;
+const MIN_PAIRS = 30;        // "Finish now" appears from this pair on
+const AUTOSAVE_EVERY = 5;    // votes between autosaves
+const ROLES = ["Deacon","Teacher","Priest","Leader"];
+const LS_KEY = "ym-pairrank-2027-progress";
+
+/* ---------- State ---------- */
+let step = "intro";          // intro | about | pairs | extra | sending | done
+let first = "", last = "", role = null, comment = "";
+let pairs = [], idx = 0, votes = [];
+let lastAutosaveCount = 0;
+let sendError = "";
+
+/* ---------- Helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const shuffle = a => { a = a.slice(); for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+const configured = () => /^https:\/\/script\.google\.com\/.+\/exec$/.test(WEB_APP_URL);
+
+function lsGet(){ try { return JSON.parse(localStorage.getItem(LS_KEY)||"null"); } catch(e){ return null; } }
+function lsSet(v){ try { localStorage.setItem(LS_KEY, JSON.stringify(v)); } catch(e){} }
+function lsClear(){ try { localStorage.removeItem(LS_KEY); } catch(e){} }
+function saveLocal(){ lsSet({first, last, role, comment, pairs, idx, votes, step: step==="sending" ? "extra" : step, lastAutosaveCount}); }
+
+// Balanced random pairs: repeatedly take the unused pair whose options have appeared least.
+function buildPairs(n){
+  const count = Array(ACTIVITIES.length).fill(0);
+  let pool = [];
+  for (let i=0;i<ACTIVITIES.length;i++) for (let j=i+1;j<ACTIVITIES.length;j++) pool.push([i,j]);
+  pool = shuffle(pool);
+  const out = [];
+  while (out.length < n && pool.length){
+    let best = 0, bestScore = Infinity;
+    for (let k=0;k<pool.length;k++){
+      const s = count[pool[k][0]] + count[pool[k][1]];
+      if (s < bestScore){ bestScore = s; best = k; }
+    }
+    const [a,b] = pool.splice(best,1)[0];
+    count[a]++; count[b]++;
+    out.push(Math.random()<.5 ? [a,b] : [b,a]);
+  }
+  return out; // selection order kept so an early finish still covers every activity evenly
+}
+
+// Win rate = wins / appearances. Used only for the respondent's own top three.
+function tally(list){
+  const wins = Array(ACTIVITIES.length).fill(0), seen = Array(ACTIVITIES.length).fill(0);
+  list.forEach(([a,b,w]) => { seen[a]++; seen[b]++; wins[w]++; });
+  const rows = ACTIVITIES.map((name,i)=>({i,name,wins:wins[i],seen:seen[i],rate:seen[i]?wins[i]/seen[i]:0}));
+  rows.sort((x,y)=> y.rate-x.rate || y.seen-x.seen || x.name.localeCompare(y.name));
+  return rows;
+}
+
+/* ---------- Sending ---------- */
+function payload(complete){
+  return {first: first.trim().slice(0,30), last: last.trim().slice(0,30), role,
+          votes: votes.slice(0, PAIRS_PER_PERSON), comment: comment.trim().slice(0,500),
+          complete, at: Date.now()};
+}
+// Apps Script sends no CORS headers, so the reply cannot be read. A resolved fetch means "sent".
+function post(body, keepalive){
+  if (!configured()) return Promise.reject(new Error("not configured"));
+  return fetch(WEB_APP_URL, {method:"POST", mode:"no-cors", keepalive: !!keepalive,
+    headers:{"Content-Type":"text/plain;charset=utf-8"}, body: JSON.stringify(body)});
+}
+function autosave(){
+  if (votes.length - lastAutosaveCount < AUTOSAVE_EVERY) return;
+  lastAutosaveCount = votes.length;
+  post(payload(false), true).catch(()=>{}); // best effort; the final submit carries everything
+}
+async function submit(){
+  step = "sending"; sendError = ""; saveLocal(); render();
+  try {
+    await post(payload(true), false);
+    const mine = votes.slice();
+    lsClear();
+    step = "done"; render(mine);
+  } catch(e){
+    step = "extra";
+    sendError = !configured()
+      ? "This survey is not connected yet. Please tell the survey organizer. Your answers are saved on this device."
+      : "Your answers could not be sent. Check that you are online, then tap Submit again. Your answers are saved on this device.";
+    saveLocal(); render();
+  }
+}
+
+/* ---------- Rendering ---------- */
+function render(doneVotes){
+  const app = $("#app");
+  if (step === "intro") app.innerHTML = introHtml();
+  else if (step === "about") app.innerHTML = aboutHtml();
+  else if (step === "pairs") app.innerHTML = pairsHtml();
+  else if (step === "extra" || step === "sending") app.innerHTML = extraHtml();
+  else app.innerHTML = doneHtml(doneVotes || []);
+  bind();
+  const h = app.querySelector("h1,h2"); if (h && step !== "pairs") { h.tabIndex = -1; }
+}
+
+function introHtml(){
+  const saved = lsGet();
+  const resume = saved && saved.role && Array.isArray(saved.pairs) && saved.pairs.length;
+  return `<div class="stack">
+    <div class="stack">
+      <h1>What should we do in 2027?</h1>
+      <p class="lede">${ACTIVITIES.length} activity ideas are on the table. You will see two at a time and tap the one you would rather do. It takes about seven minutes.</p>
+    </div>
+    ${resume ? `<div class="card stack">
+      <h3>Welcome back, ${esc(saved.first)}</h3>
+      <p style="margin:0">You answered ${saved.votes.length} pairs on this device. Pick up where you left off?</p>
+      <div class="row"><button class="btn" id="resume" type="button">Keep going</button>
+      <button class="btn ghost" id="discard" type="button">Start over</button></div>
+    </div>` : ""}
+    <div class="card stack">
+      <h3>How it works</h3>
+      <p style="margin:0">Each person votes on up to ${PAIRS_PER_PERSON} pairs. Every activity earns a win rate: how often it was picked when it appeared. The most-picked activities become our 2027 activities.</p>
+      ${resume ? "" : `<div class="row"><button class="btn" id="start" type="button">Start the survey</button></div>`}
+      <div class="note">We ask for your name so leaders can plan around what each person likes. Only the survey organizer sees names and answers. Nobody else sees what other people picked.</div>
+    </div>
+  </div>`;
+}
+
+function aboutHtml(){
+  const ready = role && first.trim() && last.trim();
+  return `<div class="stack">
+    <div class="meta"><span>Section 1 of 3</span><span>About you</span></div>
+    <div class="progress"><i style="width:8%"></i></div>
+    <h2>Who is answering?</h2>
+    <div class="names">
+      <div><label class="f" for="first">First name</label>
+      <input type="text" id="first" maxlength="30" autocomplete="given-name" value="${esc(first)}"></div>
+      <div><label class="f" for="last">Last name</label>
+      <input type="text" id="last" maxlength="30" autocomplete="family-name" value="${esc(last)}"></div>
+    </div>
+    <div class="chips" role="group" aria-label="Your role">
+      ${ROLES.map(g=>`<button class="chip" type="button" data-g="${g}" aria-pressed="${role===g}">${g}</button>`).join("")}
+    </div>
+    <div class="row"><button class="btn" id="to-pairs" type="button" ${ready?"":"disabled"}>Continue</button></div>
+  </div>`;
+}
+
+function pairsHtml(){
+  const [a,b] = pairs[idx];
+  const pct = 10 + Math.round(80 * idx / pairs.length);
+  return `<div class="stack">
+    <div class="meta"><span>Section 2 of 3 · Pair Rank</span><span>Pair ${idx+1} of ${pairs.length}</span></div>
+    <div class="progress"><i style="width:${pct}%"></i></div>
+    <h2>Which would you rather do?</h2>
+    <div class="versus" role="group" aria-label="Choose one activity">
+      <button class="pick" type="button" data-w="${a}" id="pick-a">${esc(ACTIVITIES[a])}</button>
+      <div class="vs" aria-hidden="true">VS</div>
+      <button class="pick" type="button" data-w="${b}" id="pick-b">${esc(ACTIVITIES[b])}</button>
+    </div>
+    <div class="row" style="justify-content:space-between">
+      <button class="btn ghost" id="back" type="button" ${idx===0?"disabled":""}>Back</button>
+      <div class="row">
+        <button class="btn ghost" id="skip" type="button">Skip this pair</button>
+        ${idx>=MIN_PAIRS?`<button class="btn ghost" id="finish" type="button">Finish now</button>`:""}
+      </div>
+    </div>
+    <div class="hint">Tip: on a keyboard press ← or → to choose.</div>
+  </div>`;
+}
+
+function extraHtml(){
+  const sending = step === "sending";
+  return `<div class="stack">
+    <div class="meta"><span>Section 3 of 3</span><span>Anything else</span></div>
+    <div class="progress"><i style="width:95%"></i></div>
+    <h2>Anything we missed?</h2>
+    <label for="comment" class="lede">Suggest an activity or tell us what would make Wednesday nights better. Optional.</label>
+    <textarea id="comment" maxlength="500" ${sending?"disabled":""}>${esc(comment)}</textarea>
+    ${sendError ? `<div class="warn" role="alert">${esc(sendError)}</div>` : ""}
+    <div class="row"><button class="btn" id="submit" type="button" ${sending?"disabled":""}>${sending?"Sending…":"Submit my answers"}</button>
+    <button class="btn ghost" id="back-extra" type="button" ${sending?"disabled":""}>Back</button></div>
+  </div>`;
+}
+
+function doneHtml(mine){
+  const top = tally(mine).filter(r=>r.seen).slice(0,3);
+  return `<div class="stack">
+    <h1>Thank you.</h1>
+    <p class="lede">Your ${mine.length} picks are in. ${top.length ? "Your top picks:" : ""}</p>
+    ${top.length ? `<div class="card"><div class="bars">${top.map((r,k)=>{
+      const pc = Math.round(r.rate*100);
+      return `<div class="bar"><div class="rk">${k+1}</div><div class="nm">${esc(r.name)}<div class="track"><i style="width:${pc}%"></i></div></div><div class="pc">${pc}%</div></div>`;
+    }).join("")}</div></div>` : ""}
+    <p class="lede">You can close this page. If someone else wants to take the survey on this device, tap below.</p>
+    <div class="row"><button class="btn ghost" id="again" type="button">Start a new survey</button></div>
+  </div>`;
+}
+
+/* ---------- Events ---------- */
+function unvoteAt(i){ const [a,b] = pairs[i]; votes = votes.filter(v=>!(v[0]===a&&v[1]===b)); }
+
+function bind(){
+  const on = (id,fn)=>{ const el=$(id); if(el) el.addEventListener("click",fn); };
+  on("#start",()=>{ step="about"; render(); });
+  on("#resume",()=>{
+    const s = lsGet(); if (!s) { render(); return; }
+    ({first, last, role, comment, pairs, idx, votes} = s);
+    lastAutosaveCount = s.lastAutosaveCount || 0;
+    step = (s.step==="extra" || idx>=pairs.length) ? "extra" : "pairs";
+    if (step==="pairs") idx = Math.min(idx, pairs.length-1);
+    render();
+  });
+  on("#discard",()=>{ lsClear(); first=last=comment=""; role=null; pairs=[]; votes=[]; idx=0; render(); });
+  document.querySelectorAll("[data-g]").forEach(b=>b.addEventListener("click",()=>{ role=b.dataset.g; render(); }));
+  const refresh=()=>{ const t=$("#to-pairs"); if(t) t.disabled=!(role&&first.trim()&&last.trim()); };
+  const fi=$("#first"); if(fi) fi.addEventListener("input",()=>{ first=fi.value; refresh(); });
+  const la=$("#last"); if(la) la.addEventListener("input",()=>{ last=la.value; refresh(); });
+  on("#to-pairs",()=>{ pairs=buildPairs(PAIRS_PER_PERSON); idx=0; votes=[]; lastAutosaveCount=0; step="pairs"; saveLocal(); render(); });
+  document.querySelectorAll(".pick").forEach(b=>b.addEventListener("click",()=>choose(Number(b.dataset.w))));
+  on("#skip",()=>advance());
+  on("#back",()=>{ if(idx>0){ idx--; unvoteAt(idx); saveLocal(); render(); } });
+  on("#back-extra",()=>{ sendError=""; if(idx>=pairs.length){ idx=pairs.length-1; unvoteAt(idx); } step="pairs"; saveLocal(); render(); });
+  on("#finish",()=>{ step="extra"; saveLocal(); render(); });
+  on("#submit",submit);
+  on("#again",()=>{ lsClear(); first=last=comment=""; role=null; pairs=[]; votes=[]; idx=0; step="intro"; render(); });
+  const ta=$("#comment"); if(ta) ta.addEventListener("input",()=>{ comment=ta.value; saveLocal(); });
+}
+
+let choosing = false;
+function choose(w){
+  if (choosing) return;          // ignore double taps
+  choosing = true;
+  const [a,b]=pairs[idx];
+  votes.push([a,b,w]);
+  const el = document.querySelector(`.pick[data-w="${w}"]`); if(el) el.classList.add("chosen");
+  setTimeout(()=>{ choosing=false; advance(); },140);
+}
+function advance(){
+  idx++;
+  if (idx>=pairs.length) step="extra";
+  saveLocal();
+  autosave();
+  render();
+}
+document.addEventListener("keydown",e=>{
+  if (step!=="pairs") return;
+  if (e.key==="ArrowLeft") { const el=$("#pick-a"); if(el) el.click(); }
+  if (e.key==="ArrowRight") { const el=$("#pick-b"); if(el) el.click(); }
+});
+
+render();
+</script>
+</body>
+</html>

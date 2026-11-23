@@ -1,0 +1,32 @@
+{
+  "source": "YM Google Sheet, tab 'Activity Master List', rows where column '2027 Module' is 'Yes'. Canoeing / Kayaking / Paddleboarding is marked 'x' there and is excluded.",
+  "note": "Order matters. Votes store indexes into this list. Do not reorder without migrating saved data.",
+  "activities": [
+    "3D Printing",
+    "Auto Maintenance / Repair",
+    "Bug Hunting",
+    "Camping / Survival",
+    "Construction / Home Repairs",
+    "Cooking",
+    "Entrepreneurship / Business",
+    "Fencing",
+    "First Aid",
+    "Fishing",
+    "Game Design",
+    "Geocaching",
+    "Hiking",
+    "Mountain Biking",
+    "Movie Making",
+    "Paintball",
+    "Personal Finance",
+    "Photography",
+    "Pinewood Derby",
+    "Rock Climbing",
+    "Shooting",
+    "Skiing / Sledding",
+    "Sports / Fitness",
+    "Swimming / Water Polo",
+    "Welding",
+    "Wood Working"
+  ]
+}
