@@ -1,27 +1,29 @@
 # Next steps
 
-Work in this order. Nothing in the public version has been built or tested yet.
+Work in this order. Status as of 2026-11-22: page built, Apps Script tested offline (`node tools/test-apps-script.js`), nothing deployed yet.
 
 ## 1. Repo
 
-- [ ] `git init` here. Create a GitHub repo (Katie will choose the name; GitHub Pages on a free account needs a public repo, which is fine because the repo holds no responses).
-- [ ] Add a `.gitignore` (already included) and commit.
+- [x] `git init` here (done, branch `main`). Create a GitHub repo (Katie will choose the name; GitHub Pages on a free account needs a public repo, which is fine because the repo holds no responses).
+- [x] Add a `.gitignore` (already included) and commit.
+- [ ] Create the GitHub repo and push.
 
 ## 2. Public survey page (`web/index.html`)
 
-- [ ] Start from `src/claude-artifact/index.html`. Keep the UI, pairing (`buildPairs`), scoring (`tally`), styles and survey flow.
-- [ ] Remove everything tied to claude.ai: `claude.use("user")`, `claude.use("db")`, `initShared`, the Results / Compare / By boy tabs and their code, `canSee`, the roster/drafts snapshot listeners, `dedupe` (moves server side).
-- [ ] Replace saving with `POST` to the Apps Script URL (see `docs/SPEC.md`). Send `{first, last, role, votes, comment, complete, at}`.
-- [ ] Autosave every 5 pairs (`complete: false`) and final submit (`complete: true`).
-- [ ] Add `localStorage` resume on the same device, wrapped in try/catch.
-- [ ] Put `WEB_APP_URL` in one clearly named constant at the top.
-- [ ] Show a clear message if the submit cannot be sent (offline), keep answers on the device and let the person retry.
-- [ ] Keep the page free of any results or other people's data.
+- [x] Start from `src/claude-artifact/index.html`. Keep the UI, pairing (`buildPairs`), scoring (`tally`), styles and survey flow.
+- [x] Remove everything tied to claude.ai: `claude.use("user")`, `claude.use("db")`, `initShared`, the Results / Compare / By boy tabs and their code, `canSee`, the roster/drafts snapshot listeners, `dedupe` (moves server side).
+- [x] Replace saving with `POST` to the Apps Script URL (see `docs/SPEC.md`). Send `{first, last, role, votes, comment, complete, at}`.
+- [x] Autosave every 5 pairs (`complete: false`) and final submit (`complete: true`).
+- [x] Add `localStorage` resume on the same device, wrapped in try/catch.
+- [x] Put `WEB_APP_URL` in one clearly named constant at the top.
+- [x] Show a clear message if the submit cannot be sent (offline), keep answers on the device and let the person retry.
+- [x] Keep the page free of any results or other people's data.
 
 ## 3. Apps Script intake
 
 - [ ] Open the YM Google Sheet, Extensions > Apps Script, paste `apps-script/Code.gs`.
-- [ ] Review and test the draft (it has never been run). Use a throwaway sheet copy first.
+- [x] Review and test the draft offline (fake sheet). Fixed: Status column was read before it existed.
+- [ ] Test it once in a throwaway copy of the sheet.
 - [ ] Deploy > New deployment > Web app. Execute as: Me. Who has access: Anyone. Copy the `/exec` URL into the page.
 - [ ] Confirm a test post creates one row with correct win-rate formulas, and that a second post with the same name replaces it, and that an unfinished post never replaces a finished one.
 - [ ] Add the `Status` column header (column EB). The script's `ensureHeader()` does this.
