@@ -53,6 +53,9 @@ h2{font-size:clamp(28px,6vw,38px)}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:10px 16px;font-weight:500;min-height:44px}
 .chip[aria-pressed="true"]{background:var(--pine);color:var(--bg);border-color:var(--pine)}
+.chips.roles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.chips.roles .chip{border-radius:12px;padding:10px 14px;text-align:left;font-weight:600}
+.chip small{display:block;font-size:13px;font-weight:400;opacity:.8;margin-top:2px}
 .versus{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:stretch}
 .pick{border:2px solid var(--line);background:var(--surface);border-radius:16px;padding:20px;min-height:170px;display:flex;align-items:center;justify-content:center;text-align:center;font-family:var(--display);font-weight:700;font-size:clamp(26px,5.5vw,38px);line-height:1.05;transition:transform .12s,border-color .12s,background .12s;touch-action:manipulation}
 .pick:hover{border-color:var(--accent)}
@@ -109,6 +112,7 @@ const PAIRS_PER_PERSON = 100;
 const MIN_PAIRS = 30;        // "Finish now" appears from this pair on
 const AUTOSAVE_EVERY = 5;    // votes between autosaves
 const ROLES = ["Deacon","Teacher","Priest","Leader"];
+const ROLE_AGES = {Deacon:"Turning 12 or 13 in 2027", Teacher:"Turning 14 or 15 in 2027", Priest:"Turning 16, 17 or 18 in 2027", Leader:"Adult leader"};
 const LS_KEY = "ym-pairrank-2027-progress";
 
 /* ---------- State ---------- */
@@ -255,8 +259,8 @@ function aboutHtml(){
       <div><label class="f" for="last">Last name</label>
       <input type="text" id="last" maxlength="30" autocomplete="family-name" value="${esc(last)}"></div>
     </div>
-    <div class="chips" role="group" aria-label="Your role">
-      ${ROLES.map(g=>`<button class="chip" type="button" data-g="${g}" aria-pressed="${role===g}">${g}</button>`).join("")}
+    <div class="chips roles" role="group" aria-label="Your role">
+      ${ROLES.map(g=>`<button class="chip" type="button" data-g="${g}" aria-pressed="${role===g}">${g}<small>${ROLE_AGES[g]}</small></button>`).join("")}
     </div>
     <div class="row"><button class="btn" id="to-pairs" type="button" ${ready?"":"disabled"}>Continue</button></div>
   </div>`;
