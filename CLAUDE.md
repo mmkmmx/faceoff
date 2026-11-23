@@ -27,13 +27,13 @@ A Pair Rank survey that decides which activities the Young Men program runs in 2
 - Roles: Deacon, Teacher, Priest, Leader (Parent was removed).
 - Results are compiled into four views: Everyone, Deacons, Teachers & Priests, Leaders, plus a side-by-side Compare table (rank and win rate per group, with a "gap" column that flags disagreements of 30+ points).
 - Same-name handling: one record per person (case and spacing ignored). A finished survey beats any unfinished one. Otherwise the newest record wins. An unfinished retake never overwrites a finished survey.
-- Score = wins / appearances. Do not change this without also changing the sheet formulas.
+- Score = wins / appearances, computed in `apps-script/Code.gs` and written to the sheet as numbers. Raw votes are kept in one column (AG) for pooled group results. Run `node tools/test-apps-script.js` after any change to the script.
 
 ## Current state
 
 - `src/claude-artifact/index.html` is the working survey as published on claude.ai. It stores data with the claude.ai artifact `db` capability, which **requires every viewer to be signed in to Claude**. That is why it cannot be used by the boys. Treat it as the reference for UI, pairing, scoring and result views, not as the deliverable.
-- The Google Sheet tab `2027 Survey Results` exists with headers only (columns A to EA, see `docs/SPEC.md`).
-- `apps-script/Code.gs` is an **untested draft** of the public intake endpoint.
+- The Google Sheet tab `2027 Survey Results` exists with headers only, in the old layout (A to EA). The script rewrites the header to the new layout (A to AG, see `docs/SPEC.md`) on its first submission.
+- `apps-script/Code.gs` is the intake endpoint. Tested offline and deployed on a copy of the sheet. The live page `https://mmkmmx.github.io/faceoff/` (repo `mmkmmx/faceoff`, `web/` published by GitHub Actions) currently points at that test deployment.
 - The test response in the old artifact was purged. The sheet has no data rows.
 
 ## Links

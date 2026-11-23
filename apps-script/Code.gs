@@ -1,8 +1,8 @@
 /**
  * YM 2027 Pair Rank: survey intake.
  *
- * UNTESTED DRAFT. Paste into the YM spreadsheet (Extensions > Apps Script),
- * try it on a copy of the sheet first, then deploy as a web app:
+ * Tested offline (node tools/test-apps-script.js) and on a sheet copy.
+ * Paste into the YM spreadsheet (Extensions > Apps Script), then deploy as a web app:
  *   Execute as: Me.  Who has access: Anyone.
  *
  * The page POSTs JSON (sent as text/plain to avoid a CORS preflight):
@@ -10,6 +10,8 @@
  * a, b and winner are indexes into ACTIVITIES.
  *
  * One row per person on the tab TAB. The script never returns sheet data.
+ * Win rates (wins / appearances) are computed here and written as plain numbers.
+ * The raw votes are kept in one compact column so group results can be pooled.
  */
 
 const TAB = '2027 Survey Results';
@@ -24,15 +26,18 @@ const ACTIVITIES = [
   'Swimming / Water Polo', 'Welding', 'Wood Working'
 ];
 
-// Column numbers (1-based). Must match the header row of the tab.
+// Column numbers (1-based). ensureHeader_ writes the matching header row.
 const COL_SUBMITTED = 1;   // A
 const COL_NAME = 2;        // B
 const COL_ROLE = 3;        // C
-const COL_PAIRS = 4;       // D  formula
+const COL_PAIRS = 4;       // D  pairs answered
 const COL_COMMENT = 5;     // E
-const COL_FIRST_ACT = 6;   // F  first of 26 win-rate formula columns (F to AE)
-const COL_FIRST_PAIR = 32; // AF first of 100 pair columns (AF to EA)
-const COL_STATUS = 132;    // EB
+const COL_FIRST_ACT = 6;   // F  first of 26 win-rate columns (F to AE)
+const COL_STATUS = 32;     // AF Finished | Unfinished
+const COL_VOTES = 33;      // AG raw votes "w>l,w>l,..." (0-based indexes into ACTIVITIES)
+const LAST_COL = COL_VOTES;
+const HEADER = ['Submitted', 'Name', 'Role', 'Pairs answered', 'Comment']
+  .concat(ACTIVITIES, ['Status', 'Votes (winner>loser, activity # from 0)']);
 
 function doGet() {
   return json_({ ok: true, service: 'ym-pair-rank' });
@@ -80,33 +85,22 @@ function doPost(e) {
     }
     if (row < 0) row = lastRow + 1;
 
-    const pairCells = new Array(MAX_PAIRS).fill('');
-    p.votes.forEach(function (v, i) {
+    const wins = new Array(ACTIVITIES.length).fill(0);
+    const seen = new Array(ACTIVITIES.length).fill(0);
+    const raw = [];
+    p.votes.forEach(function (v) {
       const winner = v[2];
       const loser = winner === v[0] ? v[1] : v[0];
-      pairCells[i] = ACTIVITIES[winner] + ' > ' + ACTIVITIES[loser];
+      wins[winner]++; seen[winner]++; seen[loser]++;
+      raw.push(winner + '>' + loser);
     });
+    const rates = seen.map(function (n, i) { return n ? wins[i] / n : ''; });
 
-    // Write raw values first, then formulas.
-    sheet.getRange(row, COL_SUBMITTED).setValue(new Date()).setNumberFormat('yyyy-mm-dd hh:mm');
-    sheet.getRange(row, COL_NAME).setValue(cleanText_(fullName, 60));
-    sheet.getRange(row, COL_ROLE).setValue(p.role);
-    sheet.getRange(row, COL_COMMENT).setValue(cleanText_(p.comment || '', 500));
-    sheet.getRange(row, COL_FIRST_PAIR, 1, MAX_PAIRS).setNumberFormat('@').setValues([pairCells]);
-    sheet.getRange(row, COL_STATUS).setValue(complete ? 'Finished' : 'Unfinished');
-
-    const pairsRange = '$' + colLetter_(COL_FIRST_PAIR) + row + ':$' +
-      colLetter_(COL_FIRST_PAIR + MAX_PAIRS - 1) + row;
-    sheet.getRange(row, COL_PAIRS).setFormula('=COUNTA(' + pairsRange.replace(/\$/g, '') + ')');
-
-    const formulas = [];
-    for (let i = 0; i < ACTIVITIES.length; i++) {
-      const head = colLetter_(COL_FIRST_ACT + i) + '$1';
-      const wins = 'COUNTIF(' + pairsRange + ',' + head + '&" >*")';
-      const losses = 'COUNTIF(' + pairsRange + ',"*> "&' + head + ')';
-      formulas.push('=IFERROR(' + wins + '/(' + wins + '+' + losses + '),"")');
-    }
-    sheet.getRange(row, COL_FIRST_ACT, 1, ACTIVITIES.length).setFormulas([formulas]);
+    const values = [new Date(), cleanText_(fullName, 60), p.role, p.votes.length,
+      cleanText_(p.comment || '', 500)].concat(rates, [complete ? 'Finished' : 'Unfinished', raw.join(',')]);
+    const range = sheet.getRange(row, 1, 1, LAST_COL);
+    range.setValues([values]);
+    sheet.getRange(row, COL_SUBMITTED).setNumberFormat('yyyy-mm-dd hh:mm');
     sheet.getRange(row, COL_FIRST_ACT, 1, ACTIVITIES.length).setNumberFormat('0%');
 
     return json_({ ok: true, row: row, status: complete ? 'Finished' : 'Unfinished' });
@@ -140,12 +134,15 @@ function validate_(p) {
 }
 
 function ensureHeader_(sheet) {
-  // Add the column first: reading past the last column throws in Sheets.
-  if (sheet.getMaxColumns() < COL_STATUS) {
-    sheet.insertColumnsAfter(sheet.getMaxColumns(), COL_STATUS - sheet.getMaxColumns());
+  if (sheet.getMaxColumns() < LAST_COL) {
+    sheet.insertColumnsAfter(sheet.getMaxColumns(), LAST_COL - sheet.getMaxColumns());
   }
-  if (sheet.getRange(1, COL_STATUS).getValue() !== 'Status') {
-    sheet.getRange(1, COL_STATUS).setValue('Status').setFontWeight('bold');
+  const current = sheet.getRange(1, 1, 1, LAST_COL).getValues()[0];
+  if (current.join('|') !== HEADER.join('|')) {
+    sheet.getRange(1, 1, 1, LAST_COL).setValues([HEADER]).setFontWeight('bold');
+    // Clear headers left over from the old layout (Pair 1 to Pair 100, Status in EB).
+    const extra = sheet.getMaxColumns() - LAST_COL;
+    if (extra > 0) sheet.getRange(1, LAST_COL + 1, 1, extra).clearContent();
   }
 }
 
@@ -158,16 +155,6 @@ function cleanText_(s, max) {
   let t = String(s).slice(0, max);
   if (/^[=+\-@]/.test(t)) t = "'" + t;
   return t;
-}
-
-function colLetter_(n) {
-  let s = '';
-  while (n > 0) {
-    const m = (n - 1) % 26;
-    s = String.fromCharCode(65 + m) + s;
-    n = Math.floor((n - 1) / 26);
-  }
-  return s;
 }
 
 function json_(obj) {

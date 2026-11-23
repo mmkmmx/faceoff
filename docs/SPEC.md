@@ -34,21 +34,20 @@
 
 ## Sheet layout, tab `2027 Survey Results` (one row per person)
 
+Changed 2026-11-23: the 100 per-pair columns were dropped. The Apps Script computes the win rates and writes plain numbers (no formulas). It also rewrites the header row if it does not match.
+
 | Columns | Content |
 |---|---|
 | A | Submitted (date and time) |
 | B | Name (first and last) |
 | C | Role (exact, so Teachers and Priests can be split) |
-| D | Pairs answered (formula: count of non-empty pair cells) |
+| D | Pairs answered (number) |
 | E | Comment |
-| F to AE | Win rate per activity, in the order of the header row (formulas over the pair cells) |
-| AF to EA | Pair 1 to Pair 100, raw result text like `Hiking > Fishing` (winner first) |
-| EB | Status: `Finished` or `Unfinished` (to be added, not in the sheet yet) |
+| F to AE | Win rate per activity = wins / appearances for that person, in `activities-2027.json` order. Blank if the activity never came up |
+| AF | Status: `Finished` or `Unfinished` |
+| AG | Votes: compact raw votes, `winner>loser` pairs separated by commas, using 0-based indexes into `activities-2027.json` (0 = column F). Kept so group results can pool wins and appearances instead of averaging percents |
 
-Win-rate formula for activity header in `F$1`, row 2:
-`=IFERROR(COUNTIF($AF2:$EA2,F$1&" >*")/(COUNTIF($AF2:$EA2,F$1&" >*")+COUNTIF($AF2:$EA2,"*> "&F$1)),"")`
-
-Raw results stay as text so the win rates are formulas a reader can trace.
+Group results should pool: sum wins and appearances across people from column AG, then divide. Averaging the F to AE percents gives early finishers (30 pairs, about 2 appearances per activity) the same weight as full surveys.
 
 ## Same-name rules (server side, in the Apps Script)
 

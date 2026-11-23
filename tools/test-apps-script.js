@@ -23,6 +23,7 @@ function makeSheet(maxCols) {
       setFormulas: fs => { fs.forEach((row, i) => row.forEach((f, j) => { cell(i, j).f = f; })); return api; },
       setNumberFormat: () => api,
       setFontWeight: () => api,
+      clearContent: () => { for (let i = 0; i < nr; i++) for (let j = 0; j < nc; j++) { cell(i, j).v = ""; cell(i, j).f = ""; } return api; },
     };
     return api;
   };
@@ -46,7 +47,7 @@ function load(sheet) {
   return ctx;
 }
 
-// Header row as in the real tab (A to EA), no Status column yet.
+// Old header row as in the real tab today (A to EA, Pair 1 to Pair 100). The script must replace it.
 const sheet = makeSheet(131);
 const head = ["Submitted", "Name", "Role", "Pairs answered", "Comment", ...ACTS, ...Array.from({ length: 100 }, (_, i) => `Pair ${i + 1}`)];
 sheet.getRange(1, 1, 1, head.length).setValues([head]);
@@ -55,7 +56,8 @@ const post = p => gs.doPost({ postData: { contents: JSON.stringify(p) } });
 
 let fails = 0;
 const check = (label, cond) => { console.log((cond ? "ok   " : "FAIL ") + label); if (!cond) fails++; };
-const row = r => ({ name: sheet.cells[`${r},2`]?.v, role: sheet.cells[`${r},3`]?.v, status: sheet.cells[`${r},132`]?.v, pairs: sheet.getRange(r, 32, 1, 100).getValues()[0].filter(Boolean).length });
+const row = r => ({ name: sheet.cells[`${r},2`]?.v, role: sheet.cells[`${r},3`]?.v, pairs: sheet.cells[`${r},4`]?.v, status: sheet.cells[`${r},32`]?.v, votes: sheet.cells[`${r},33`]?.v,
+  rate: i => sheet.cells[`${r},${6 + i}`]?.v });
 
 // Vote lists
 const pairsN = n => { const out = []; for (let i = 0; i < 26 && out.length < n; i++) for (let j = i + 1; j < 26 && out.length < n; j++) out.push([i, j, i]); return out; };
@@ -65,11 +67,15 @@ check("activity list in Code.gs matches data/activities-2027.json", JSON.stringi
 
 let r = post(base);
 check("first unfinished post accepted", r.ok && r.row === 2);
-check("Status header added in EB", sheet.cells["1,132"].v === "Status");
+check("header rewritten: Status in AF, Votes in AG", sheet.cells["1,32"].v === "Status" && sheet.cells["1,33"].v.startsWith("Votes"));
+check("old Pair headers cleared", sheet.getRange(1, 34, 1, 98).getValues()[0].every(v => v === ""));
+check("activity headers F to AE unchanged", sheet.getRange(1, 6, 1, 26).getValues()[0].join("|") === ACTS.join("|"));
 check("row 2 is Unfinished with 10 pairs", row(2).status === "Unfinished" && row(2).pairs === 10);
-check("pair text is winner first", sheet.cells["2,32"].v === `${ACTS[0]} > ${ACTS[1]}`);
-check("win-rate formula present", /COUNTIF\(\$AF2:\$EA2,F\$1&" >\*"\)/.test(sheet.cells["2,6"].f));
-check("pairs-answered formula", sheet.cells["2,4"].f === "=COUNTA(AF2:EA2)");
+check("raw votes winner first", row(2).votes.startsWith("0>1,0>2,"));
+check("win rate is a number: activity 0 won all 10", row(2).rate(0) === 1);
+check("win rate 0 for an activity that only lost", row(2).rate(1) === 0);
+check("win rate blank for an activity never shown", row(2).rate(25) === "");
+check("no formulas written", Object.values(sheet.cells).every(c => !c.f));
 
 r = post({ ...base, first: "  sam ", last: "SMITH", votes: pairsN(40) });
 check("same name (case/space) replaces unfinished row", r.row === 2 && row(2).pairs === 40 && sheet.getLastRow() === 2);
@@ -82,7 +88,9 @@ r = post({ ...base, votes: pairsN(5), complete: false });
 check("unfinished does not replace finished", r.kept && row(2).pairs === 100 && row(2).status === "Finished");
 
 r = post({ ...base, votes: pairsN(30), complete: true });
-check("newer finished replaces finished, old pair cells cleared", row(2).pairs === 30);
+check("newer finished replaces finished", row(2).pairs === 30 && row(2).votes.split(",").length === 30);
+r = post({ ...base, votes: [[3, 4, 4], [3, 5, 3]], complete: true });
+check("rates recomputed, old ones cleared", row(2).rate(3) === 0.5 && row(2).rate(0) === "");
 
 r = post({ ...base, last: "Jones" });
 check("same first name, different last name gets new row", r.row === 3 && row(3).name === "Sam Jones");
