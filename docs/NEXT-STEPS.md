@@ -6,7 +6,7 @@ Work in this order. Status as of 2026-11-22: page built, Apps Script tested offl
 
 - [x] `git init` here (done, branch `main`). Create a GitHub repo (Katie will choose the name; GitHub Pages on a free account needs a public repo, which is fine because the repo holds no responses).
 - [x] Add a `.gitignore` (already included) and commit.
-- [ ] Create the GitHub repo and push.
+- [x] Create the GitHub repo and push.
 
 ## 2. Public survey page (`web/index.html`)
 
@@ -21,18 +21,18 @@ Work in this order. Status as of 2026-11-22: page built, Apps Script tested offl
 
 ## 3. Apps Script intake
 
-- [ ] Open the YM Google Sheet, Extensions > Apps Script, paste `apps-script/Code.gs`.
+- [x] Open the YM Google Sheet, Extensions > Apps Script, paste `apps-script/Code.gs`.
 - [x] Review and test the draft offline (fake sheet). Fixed: Status column was read before it existed.
-- [ ] Test it once in a throwaway copy of the sheet.
-- [ ] Deploy > New deployment > Web app. Execute as: Me. Who has access: Anyone. Copy the `/exec` URL into the page.
-- [ ] Confirm a test post creates one row with correct win-rate formulas, and that a second post with the same name replaces it, and that an unfinished post never replaces a finished one.
-- [ ] Add the `Status` column header (column EB). The script's `ensureHeader()` does this.
+- [x] Test it once in a throwaway copy of the sheet.
+- [x] Deploy > New deployment > Web app. Execute as: Me. Who has access: Anyone. Copy the `/exec` URL into the page.
+- [x] Confirm a test post creates one row with correct win-rate formulas, and that a second post with the same name replaces it, and that an unfinished post never replaces a finished one.
+- [x] Header row rewritten by the script (Status in AF, Votes in AG).
 
 ## 4. Publish
 
-- [ ] Turn on GitHub Pages for the repo (serve `web/`, or move the page to the root or `docs/`).
-- [ ] Test the live link on a phone and on desktop, each in a private window, signed out of everything.
-- [ ] Delete the test rows from the sheet.
+- [x] Turn on GitHub Pages for the repo (serve `web/`, or move the page to the root or `docs/`).
+- [x] Test the live link on a phone and on desktop, each in a private window, signed out of everything.
+- [ ] Delete the "Test Delete-me" row from the real sheet.
 - [ ] Send the link to leaders and parents. Remind them there is no login.
 
 ## 5. Owner results
